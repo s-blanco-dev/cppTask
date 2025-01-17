@@ -3,7 +3,6 @@
 
 #include "Task.h"
 #include "TaskManager.h"
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,19 +14,20 @@ private:
   std::unique_ptr<TaskManager> tasker;
 
 public:
-  static Facade *getInstance(); // instancia única de Singleton
-  ~Facade();                    // Destructor
+  static Facade *getInstance(); // singleton instance
+  ~Facade();                    // destructor
   static void resetInstance();
 
   void tuiCreateTask();
   void tuiViewTasks();
-  void toggleTaskCompleted(Task &task);
-  void removeTask(Task &task);
+  void toggleTaskCompleted(std::shared_ptr<Task> task);
+  void removeTask(std::shared_ptr<Task> task);
   void newTask(const std::string &description, Priority::Level level);
-  std::vector<Task> getTasks();
+  std::vector<std::shared_ptr<Task>> getTasks();
   void overwriteTasker(std::string path);
-  void setTaskProgress(Task &task, int progress);
+  void setTaskProgress(std::shared_ptr<Task> task, int progress);
   std::unique_ptr<TaskManager> getTasker();
+  void cleanTaskerJsonFile();
 };
 
 #endif // !FACADE

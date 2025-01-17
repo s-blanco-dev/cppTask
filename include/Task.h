@@ -17,6 +17,8 @@ private:
   int progress;
 
 public:
+  virtual ~Task() =
+      default; // virtual destructor for proper cleanup in derived classes
   std::string getDescription() const;
   void setDescription(std::string description);
   bool isCompleted() const;
