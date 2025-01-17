@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-// Apply singleton so there's only one instance of Facade
+// apply singleton so there's only one instance of Facade
 Facade *Facade::instance = nullptr;
 
 Facade *Facade::getInstance() {
@@ -36,9 +36,9 @@ void Facade::resetInstance() {
   instance = nullptr;
 }
 
-void Facade::toggleTaskCompleted(Task &task) {
+void Facade::toggleTaskCompleted(std::shared_ptr<Task> task) {
   try {
-    if (!task.isCompleted()) {
+    if (!task->isCompleted()) {
       tasker->updateTaskCompleted(task, true);
     } else {
       tasker->updateTaskCompleted(task, false);
@@ -48,7 +48,7 @@ void Facade::toggleTaskCompleted(Task &task) {
   }
 }
 
-void Facade::removeTask(Task &task) {
+void Facade::removeTask(std::shared_ptr<Task> task) {
   try {
     tasker->removeTask(task);
   } catch (const std::exception &e) {
@@ -64,7 +64,7 @@ void Facade::newTask(const std::string &description, Priority::Level level) {
   }
 }
 
-std::vector<Task> Facade::getTasks() {
+std::vector<std::shared_ptr<Task>> Facade::getTasks() {
   try {
     return tasker->getTasks();
   } catch (const std::exception &e) {
@@ -78,7 +78,7 @@ void Facade::overwriteTasker(std::string path) {
   this->tasker = std::make_unique<TaskManager>(TaskManager(path));
 }
 
-void Facade::setTaskProgress(Task &task, int progress) {
+void Facade::setTaskProgress(std::shared_ptr<Task> task, int progress) {
   try {
     this->tasker->updateTaskProgress(task, progress);
   } catch (const std::exception &e) {
@@ -88,6 +88,14 @@ void Facade::setTaskProgress(Task &task, int progress) {
 
 std::unique_ptr<TaskManager> Facade::getTasker() {
   return std::move(this->tasker);
+}
+
+void Facade::cleanTaskerJsonFile() {
+  try {
+    this->tasker->cleanJsonFile();
+  } catch (const std::exception &e) {
+    std::cerr << "Error cleaning json file: " << e.what() << std::endl;
+  }
 }
 
 // TUI Methods

@@ -8,28 +8,19 @@
 #include <vector>
 
 TaskManager::TaskManager(std::string filePath) {
-  this->tasks = {};
   this->filePath = filePath;
   autoJsonCreate(filePath);
   getTasksFromJson(filePath);
 }
 
-std::vector<Task> TaskManager::getTasks() const {
-  // std::vector<Task> taskEmpty;
-  // if (tasks.empty()) {
-  //   Task emptyTask =
-  //       Task("Press 'n' to create a new task!", Priority::Level::High);
-  //   taskEmpty.push_back(emptyTask);
-  //   return taskEmpty;
-  // }
+std::vector<std::shared_ptr<Task>> TaskManager::getTasks() const {
   return tasks;
 }
 
 void TaskManager::createTask(const std::string &description,
                              Priority::Level level) {
-
-  Task tasky = Task(description, level);
-  tasky.setId(calculateId());
+  auto tasky = std::make_shared<Task>(description, level);
+  tasky->setId(calculateId());
   this->tasks.push_back(tasky);
   saveTasksToJson(this->filePath);
 }
@@ -42,7 +33,7 @@ void TaskManager::saveTasksToJson(const std::string &filename) const {
 
   nlohmann::json j;
   for (const auto &task : tasks) {
-    j.push_back(task.to_json());
+    j.push_back(task->to_json());
   }
 
   outFile << j.dump(4); // write to json file
@@ -66,36 +57,38 @@ void TaskManager::getTasksFromJson(const std::string &filename) {
   }
 
   for (const auto &taskJson : j) {
-    Task task = Task::from_json(taskJson); // convertn json to Task object
-    this->tasks.push_back(task);           // add task to list
+    auto task = std::make_shared<Task>(
+        Task::from_json(taskJson)); // convert json to Task object
+    this->tasks.push_back(task);    // add task to list
   }
 
   inFile.close();
 }
 
-void TaskManager::updateTaskCompleted(Task &task, bool currentState) {
+void TaskManager::updateTaskCompleted(std::shared_ptr<Task> task,
+                                      bool currentState) {
   bool taskFound = false;
   for (auto &tasky : this->tasks) {
-    if (tasky.getId() == task.getId()) {
-      tasky.setCompleted(currentState);
+    if (tasky->getId() == task->getId()) {
+      tasky->setCompleted(currentState);
       saveTasksToJson(this->filePath);
       taskFound = true;
       break;
     }
   }
   if (!taskFound) {
-    throw std::invalid_argument("Task with ID " + std::to_string(task.getId()) +
-                                " not found.");
+    throw std::invalid_argument("Task with ID " +
+                                std::to_string(task->getId()) + " not found.");
   }
 }
 
-void TaskManager::removeTask(Task &task) {
+void TaskManager::removeTask(std::shared_ptr<Task> task) {
   bool taskFound = false;
 
   // iterate through the tasks to find task by id
   for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    if (it->getId() == task.getId()) {
-      tasks.erase(it); // memove task according to its id
+    if ((*it)->getId() == task->getId()) {
+      tasks.erase(it); // remove task according to its id
       saveTasksToJson(this->filePath);
       taskFound = true;
       break;
@@ -103,21 +96,38 @@ void TaskManager::removeTask(Task &task) {
   }
 
   if (!taskFound) {
-    throw std::invalid_argument("Task with ID " + std::to_string(task.getId()) +
-                                " not found.");
+    throw std::invalid_argument("Task with ID " +
+                                std::to_string(task->getId()) + " not found.");
   }
 }
 
 void TaskManager::setFilePath(std::string path) { this->filePath = path; }
 
-void TaskManager::updateTaskProgress(Task &task, int progress) {
+void TaskManager::updateTaskProgress(std::shared_ptr<Task> task, int progress) {
   for (auto &tasky : this->tasks) {
-    if (tasky.getId() == task.getId()) {
-      tasky.setProgress(progress);
+    if (tasky->getId() == task->getId()) {
+      tasky->setProgress(progress);
       saveTasksToJson(this->filePath);
       break;
     }
   }
+}
+
+void TaskManager::cleanJsonFile() {
+  std::ofstream outFile(filePath);
+  if (!outFile.is_open()) {
+    throw std::ios_base::failure("Failed to open file: " + filePath);
+  }
+
+  nlohmann::json emptyJson = nlohmann::json::array();
+  outFile << emptyJson.dump(4); // write an empty json array to the file
+
+  if (outFile.fail()) {
+    throw std::ios_base::failure("Failed to write to file: " + filePath);
+  }
+  outFile.close();
+
+  tasks.clear();
 }
 
 // PRIVATE METHODS
@@ -129,8 +139,8 @@ int TaskManager::calculateId() const {
 
   int highestId = 0;
   for (const auto &task : this->tasks) {
-    if (task.getId() > highestId) {
-      highestId = task.getId();
+    if (task->getId() > highestId) {
+      highestId = task->getId();
     }
   }
   return highestId + 1;
@@ -158,9 +168,9 @@ void TaskManager::autoJsonCreate(const std::string &filename) {
   }
 }
 
-Task TaskManager::getTaskById(int id) const {
+std::shared_ptr<Task> TaskManager::getTaskById(int id) const {
   for (const auto &task : this->tasks) {
-    if (task.getId() == id) {
+    if (task->getId() == id) {
       return task;
     }
   }

@@ -88,8 +88,8 @@ void ScreenElements::viewTasks() {
   auto getMenuEntries = [&]() -> std::vector<std::string> {
     std::vector<std::string> entries;
     for (const auto &task : tasks) {
-      std::string completeCheck = task.isCompleted() ? "[*]" : "[ ]";
-      entries.push_back(format("{} {}", completeCheck, task.getDescription()));
+      std::string completeCheck = task->isCompleted() ? "[*]" : "[ ]";
+      entries.push_back(format("{} {}", completeCheck, task->getDescription()));
     }
     if (tasks.empty()) {
       entries.push_back("Press 'n' to create a new task.");
@@ -116,25 +116,25 @@ void ScreenElements::viewTasks() {
             : vbox({text("Task Details:") | bold | color(Color::Yellow),
                     separator(),
                     hbox({text("ID: "),
-                          text(std::to_string(tasks[selected].getId()))}),
+                          text(std::to_string(tasks[selected]->getId()))}),
                     separatorDashed(),
                     hbox({text("Priority: ") | bold | color(Color::Cyan),
                           text(Priority::toString(
-                              tasks[selected].getPriority()))}),
+                              tasks[selected]->getPriority()))}),
                     separatorDashed(),
                     hbox({text("Created: ") | bold | color(Color::Green),
-                          paragraph(tasks[selected].getRelativeTimeMessage()) |
+                          paragraph(tasks[selected]->getRelativeTimeMessage()) |
                               flex}),
                     separatorDashed(),
                     hbox({text("Completed: ") | bold | color(Color::Blue),
-                          text(tasks[selected].isCompleted() ? "Yes" : "No")}),
+                          text(tasks[selected]->isCompleted() ? "Yes" : "No")}),
                     separatorDashed(),
                     hbox({
                         text("Progress: ") | bold | color(Color::Magenta),
-                        gaugeRight(tasks[selected].getProgress() * 0.01) |
+                        gaugeRight(tasks[selected]->getProgress() * 0.01) |
                             color(Color::Magenta),
                         separatorEmpty(),
-                        text(std::to_string(tasks[selected].getProgress()) +
+                        text(std::to_string(tasks[selected]->getProgress()) +
                              "\%") |
                             bold,
                     })}) |
@@ -177,7 +177,6 @@ void ScreenElements::viewTasks() {
       // mark as completed
     } else if (eventChar == " " && !tasks.empty()) {
       Facade::getInstance()->toggleTaskCompleted(tasks[selected]);
-      tasks[selected].setCompleted(!tasks[selected].isCompleted());
       entries = getMenuEntries();
       return true;
       // remove task
@@ -185,22 +184,21 @@ void ScreenElements::viewTasks() {
       auto secondScreen = ScreenInteractive::Fullscreen();
       if (confirmDialog(secondScreen, "Remove task?")) {
         Facade::getInstance()->removeTask(tasks[selected]);
-        tasks.erase(tasks.begin() + selected);
         refreshTasksAndMenu();
         return true;
       }
       // increase task progress
     } else if (eventChar == "+" && !tasks.empty()) {
-      int newProgress = tasks[selected].getProgress() + 10;
+      int newProgress = tasks[selected]->getProgress() + 10;
       Facade::getInstance()->setTaskProgress(tasks[selected], newProgress);
-      tasks[selected].setProgress(newProgress);
+      tasks[selected]->setProgress(newProgress);
       entries = getMenuEntries();
       return true;
       // decrease task progress
     } else if (eventChar == "-" && !tasks.empty()) {
-      int newProgress = tasks[selected].getProgress() - 10;
+      int newProgress = tasks[selected]->getProgress() - 10;
       Facade::getInstance()->setTaskProgress(tasks[selected], newProgress);
-      tasks[selected].setProgress(newProgress);
+      tasks[selected]->setProgress(newProgress);
       entries = getMenuEntries();
       return true;
     }
