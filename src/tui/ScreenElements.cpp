@@ -4,6 +4,7 @@
 #include "ftxui/component/screen_interactive.hpp" // for ScreenInteractive
 #include "ftxui/dom/elements.hpp" // for operator|, text, Element, hbox, separator, size, vbox, border, frame, vscroll_indicator, HEIGHT, LESS_THAN
 #include "ftxui/screen/color.hpp" // for Color, Color::Default, Color::GrayDark, Color::White
+#include <complex>
 #include <cstdlib>
 #include <exception>
 #include <format>
@@ -24,6 +25,22 @@
 
 // This code is bad, but I don't care
 // I may refactor this in the future
+using namespace ftxui;
+
+// Define a special style for some menu entry.
+MenuEntryOption Colored(ftxui::Color c) {
+  MenuEntryOption option;
+  option.transform = [c](EntryState state) {
+    state.label = (state.active ? "> " : "  ") + state.label;
+    Element e = text(state.label) | color(c);
+    if (state.focused)
+      e = e | inverted;
+    if (state.active)
+      e = e | bold;
+    return e;
+  };
+  return option;
+}
 
 void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   using namespace ftxui;
@@ -83,22 +100,34 @@ void ScreenElements::viewTasks() {
   auto tasks = Facade::getInstance()->getTasks();
   int selected = 0;
 
-  // function to generate menu entries
-  // useful to call when it needs to update or reload entries
-  auto getMenuEntries = [&]() -> std::vector<std::string> {
-    std::vector<std::string> entries;
-    for (const auto &task : tasks) {
-      std::string completeCheck = task->isCompleted() ? "[*]" : "[ ]";
-      entries.push_back(format("{} {}", completeCheck, task->getDescription()));
+  // Define a fixed-size array for task states (adjust size as needed)
+  const size_t max_tasks = 100;
+  std::array<bool, max_tasks> states = {};
+
+  auto menu = Container::Vertical({}, &selected);
+
+  auto getEntryColor = [&](Priority::Level lev) -> Color {
+    if (lev == Priority::Level::High) {
+      return Color::Red;
+    } else if (lev == Priority::Level::Medium) {
+      return Color::SandyBrown;
     }
-    if (tasks.empty()) {
-      entries.push_back("Press 'n' to create a new task.");
-    }
-    return entries;
+    return Color::Wheat1;
   };
 
-  std::vector<std::string> entries = getMenuEntries();
-  auto menu = Menu(&entries, &selected);
+  auto getMenuEntries = [&]() {
+    menu->DetachAllChildren();
+    for (size_t i = 0; i < tasks.size(); ++i) {
+      states[i] = tasks[i]->isCompleted();
+      menu->Add(Checkbox(format("{}", tasks[i]->getDescription()), &states[i]) |
+                color(getEntryColor(tasks[i]->getPriority())));
+    }
+    if (tasks.empty()) {
+      menu->Add(MenuEntry("Press 'n' to create a new task."));
+    }
+  };
+
+  getMenuEntries();
 
   auto renderer = Renderer(menu, [&] {
     // list of tasks
@@ -113,44 +142,49 @@ void ScreenElements::viewTasks() {
         // if no tasks exist --> print 'no task' | else: print details
         tasks.empty()
             ? vbox({text("No tasks to display") | bold})
-            : vbox({text("Task Details:") | bold | color(Color::Yellow),
-                    separator(),
-                    hbox({text("ID: "),
-                          text(std::to_string(tasks[selected]->getId()))}),
-                    separatorDashed(),
-                    hbox({text("Priority: ") | bold | color(Color::Cyan),
-                          text(Priority::toString(
-                              tasks[selected]->getPriority()))}),
-                    separatorDashed(),
-                    hbox({text("Created: ") | bold | color(Color::Green),
-                          paragraph(tasks[selected]->getRelativeTimeMessage()) |
-                              flex}),
-                    separatorDashed(),
-                    hbox({text("Completed: ") | bold | color(Color::Blue),
-                          text(tasks[selected]->isCompleted() ? "Yes" : "No")}),
-                    separatorDashed(),
-                    hbox({
-                        text("Progress: ") | bold | color(Color::Magenta),
-                        gaugeRight(tasks[selected]->getProgress() * 0.01) |
-                            color(Color::Magenta),
-                        separatorEmpty(),
-                        text(std::to_string(tasks[selected]->getProgress()) +
-                             "\%") |
-                            bold,
-                    })}) |
-                  frame | flex;
+            : vbox({
+                  text("Task Details:") | bold | color(Color::Yellow),
+                  separator(),
+                  hbox({text("ID: "),
+                        text(std::to_string(tasks[selected]->getId()))}),
+                  separatorDashed(),
+                  hbox({
+                      text("Priority: ") | bold | color(Color::Cyan),
+                      text(Priority::toString(tasks[selected]->getPriority())),
+                  }),
+                  separatorDashed(),
+                  hbox({text("Created: ") | bold | color(Color::Green),
+                        paragraph(tasks[selected]->getRelativeTimeMessage()) |
+                            flex}),
+                  separatorDashed(),
+                  hbox({text("Completed: ") | bold | color(Color::Blue),
+                        text(tasks[selected]->isCompleted() ? "Yes" : "No")}),
+                  separatorDashed(),
+                  hbox({
+                      text("Progress: ") | bold | color(Color::Magenta),
+                      gaugeRight(tasks[selected]->getProgress() * 0.01) |
+                          color(Color::Magenta),
+                      separatorEmpty(),
+                      text(std::to_string(tasks[selected]->getProgress()) +
+                           "\%") |
+                          bold,
+                  }),
+              }) | frame |
+                  flex;
 
     // combine left and right menus
-    return vbox({hbox({
-                     left_menu | xflex,
-                     separator(),
-                     right_menu,
-                 }) | yflex,
-                 separator(),
-                 text("space: toggle completed, r: remove, n: new task, q: "
-                      "quit") |
-                     frame,
-                 text("+/- increase/decrease progress")}) |
+    return vbox({
+               hbox({
+                   left_menu | xflex,
+                   separator(),
+                   right_menu,
+               }) | yflex,
+               separator(),
+               text(
+                   "space: toggle completed, r: remove, n: new task, q: quit") |
+                   frame,
+               text("+/- increase/decrease progress"),
+           }) |
            border;
   });
 
@@ -158,8 +192,8 @@ void ScreenElements::viewTasks() {
 
   auto refreshTasksAndMenu = [&]() {
     tasks = Facade::getInstance()->getTasks(); // refresh tasks
-    entries = getMenuEntries();                // refresh menu entries
-    selected = std::min(selected, (int)tasks.size() - 1);
+    getMenuEntries();                          // refresh menu entries
+    selected = std::min(selected, static_cast<int>(tasks.size()) - 1);
   };
 
   auto component = CatchEvent(renderer, [&](Event event) {
@@ -169,7 +203,8 @@ void ScreenElements::viewTasks() {
     if (eventChar == "n") {
       Facade::getInstance()->tuiCreateTask();
       refreshTasksAndMenu();
-      return true; // refresh screen
+      selected = tasks.size() - 1; // Select the newly created task
+      return true;                 // refresh screen
       // quit program
     } else if (eventChar == "q") {
       screen.Exit();
@@ -177,7 +212,8 @@ void ScreenElements::viewTasks() {
       // mark as completed
     } else if (eventChar == " " && !tasks.empty()) {
       Facade::getInstance()->toggleTaskCompleted(tasks[selected]);
-      entries = getMenuEntries();
+      states[selected] = tasks[selected]->isCompleted();
+      getMenuEntries();
       return true;
       // remove task
     } else if (eventChar == "r" && !tasks.empty()) {
@@ -192,14 +228,14 @@ void ScreenElements::viewTasks() {
       int newProgress = tasks[selected]->getProgress() + 10;
       Facade::getInstance()->setTaskProgress(tasks[selected], newProgress);
       tasks[selected]->setProgress(newProgress);
-      entries = getMenuEntries();
+      getMenuEntries();
       return true;
       // decrease task progress
     } else if (eventChar == "-" && !tasks.empty()) {
       int newProgress = tasks[selected]->getProgress() - 10;
       Facade::getInstance()->setTaskProgress(tasks[selected], newProgress);
       tasks[selected]->setProgress(newProgress);
-      entries = getMenuEntries();
+      getMenuEntries();
       return true;
     }
 
