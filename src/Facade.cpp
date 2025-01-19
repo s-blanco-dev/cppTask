@@ -1,5 +1,6 @@
 #include "../include/Facade.h"
 #include "../include/ScreenElements.h"
+#include <chrono>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -56,9 +57,11 @@ void Facade::removeTask(std::shared_ptr<Task> task) {
   }
 }
 
-void Facade::newTask(const std::string &description, Priority::Level level) {
+void Facade::newTask(const std::string &description, Priority::Level level,
+                     std::string due) {
   try {
-    tasker->createTask(description, level);
+    auto tp = getTimeFromString(due);
+    tasker->createTask(description, level, tp);
   } catch (const std::exception &e) {
     std::cerr << "Error while creating new task: " << e.what() << std::endl;
   }
@@ -96,6 +99,27 @@ void Facade::cleanTaskerJsonFile() {
   } catch (const std::exception &e) {
     std::cerr << "Error cleaning json file: " << e.what() << std::endl;
   }
+}
+
+std::chrono::system_clock::time_point
+Facade::getTimeFromString(const std::string &dueDateStr) {
+  try {
+    // parse the date string
+    std::tm tm = {};
+    std::istringstream ss(dueDateStr);
+    ss >> std::get_time(&tm, "%d-%m-%Y");
+    if (ss.fail()) {
+      throw std::invalid_argument("Invalid date format, expected dd-mm-yyyy");
+    }
+
+    // Convert to time_point
+    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+
+    return tp;
+  } catch (const std::exception &e) {
+    std::cerr << "Error while setting due date: " << e.what() << std::endl;
+  }
+  return {};
 }
 
 // TUI Methods
