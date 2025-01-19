@@ -7,6 +7,7 @@
 #include <complex>
 #include <cstdlib>
 #include <exception>
+#include <execution>
 #include <format>
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/task.hpp>
@@ -25,28 +26,13 @@
 
 // This code is bad, but I don't care
 // I may refactor this in the future
-using namespace ftxui;
-
-// Define a special style for some menu entry.
-MenuEntryOption Colored(ftxui::Color c) {
-  MenuEntryOption option;
-  option.transform = [c](EntryState state) {
-    state.label = (state.active ? "> " : "  ") + state.label;
-    Element e = text(state.label) | color(c);
-    if (state.focused)
-      e = e | inverted;
-    if (state.active)
-      e = e | bold;
-    return e;
-  };
-  return option;
-}
-
 void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   using namespace ftxui;
 
   std::string inputText;
+  std::string dueDateText;
   auto descriptionInputBox = Input(&inputText, "Description");
+  auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
 
   std::vector<std::string> entries = {"High", "Medium", "Low"};
   int selected = 0;
@@ -55,9 +41,9 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   auto saveBtn = Button(
       "Save",
       [&] {
-        if (!inputText.empty()) {
+        if (!inputText.empty() && !dueDateText.empty()) {
           Facade::getInstance()->newTask(
-              inputText, Priority::fromString(entries[selected]));
+              inputText, Priority::fromString(entries[selected]), dueDateText);
           screen.Exit();
         }
       },
@@ -65,32 +51,38 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   auto cancelBtn = Button("Cancel", [&] { screen.Exit(); }, style);
 
   auto radiobox = Radiobox(&entries, &selected);
-  auto main_container = Container::Horizontal({
+  auto main_container = Container::Vertical({
       descriptionInputBox,
       saveBtn,
       cancelBtn,
       radiobox,
+      dueDateInputBox,
   });
 
   auto component = Renderer(main_container, [&] {
-    return hbox({
-               vbox({text("New Task:") | bold, separatorDashed(),
-                     descriptionInputBox->Render() | frame |
+    auto descriptionWindow =
+        window(text("New Task") | bold | center,
+               vbox({descriptionInputBox->Render() | frame |
                          size(ftxui::HEIGHT, ftxui::EQUAL, 3) | flex_grow,
                      separator(),
                      hbox({
                          saveBtn->Render() | frame | color(Color::Green),
                          cancelBtn->Render() | frame | color(Color::Red),
-                     }) | size(HEIGHT, ftxui::EQUAL, 1)}) |
-                   xflex,
-               separator(),
-               vbox({
-                   text("Priority:") | center | bold,
-                   radiobox->Render() | vscroll_indicator | frame,
-               }),
-           }) |
-           flex | border;
+                     }) | size(HEIGHT, ftxui::EQUAL, 1)}));
+
+    auto priorityWindow =
+        window(text("Priority") | bold | center,
+               vbox({radiobox->Render() | vscroll_indicator | frame}));
+
+    auto dueDateWindow = window(text("Due Date") | bold | center,
+                                vbox({dueDateInputBox->Render() | frame}));
+
+    return hbox({descriptionWindow | flex, vbox({
+                                               priorityWindow | xflex,
+                                               dueDateWindow | xflex,
+                                           })});
   });
+
   screen.Loop(component);
 }
 
@@ -106,11 +98,14 @@ void ScreenElements::viewTasks() {
 
   auto menu = Container::Vertical({}, &selected);
 
-  auto getEntryColor = [&](Priority::Level lev) -> Color {
-    if (lev == Priority::Level::High) {
+  auto getEntryColor = [&](int taskIndex) -> Color {
+    if (tasks[taskIndex]->isCompleted()) {
+      return Color::GrayDark;
+    }
+    if (tasks[taskIndex]->getPriority() == Priority::Level::High) {
       return Color::Red;
-    } else if (lev == Priority::Level::Medium) {
-      return Color::SandyBrown;
+    } else if (tasks[taskIndex]->getPriority() == Priority::Level::Medium) {
+      return Color::Orange1;
     }
     return Color::Wheat1;
   };
@@ -120,7 +115,7 @@ void ScreenElements::viewTasks() {
     for (size_t i = 0; i < tasks.size(); ++i) {
       states[i] = tasks[i]->isCompleted();
       menu->Add(Checkbox(format("{}", tasks[i]->getDescription()), &states[i]) |
-                color(getEntryColor(tasks[i]->getPriority())));
+                color(getEntryColor(i)));
     }
     if (tasks.empty()) {
       menu->Add(MenuEntry("Press 'n' to create a new task."));
@@ -130,62 +125,81 @@ void ScreenElements::viewTasks() {
   getMenuEntries();
 
   auto renderer = Renderer(menu, [&] {
-    // list of tasks
-    auto left_menu = vbox({
-        text("To-Do:") | bold | color(Color::Red),
-        separator(),
-        menu->Render() | vscroll_indicator | frame | flex,
-    });
+    // list of tasks inside a window
+    auto left_menu =
+        window(text("Tasks") | bold | center,
+               vbox({
+                   menu->Render() | vscroll_indicator | frame | flex,
+               }));
 
     // details of the selected task (if tasks exist)
     auto right_menu =
         // if no tasks exist --> print 'no task' | else: print details
         tasks.empty()
-            ? vbox({text("No tasks to display") | bold})
-            : vbox({
-                  text("Task Details:") | bold | color(Color::Yellow),
-                  separator(),
-                  hbox({text("ID: "),
-                        text(std::to_string(tasks[selected]->getId()))}),
-                  separatorDashed(),
-                  hbox({
-                      text("Priority: ") | bold | color(Color::Cyan),
-                      text(Priority::toString(tasks[selected]->getPriority())),
-                  }),
-                  separatorDashed(),
-                  hbox({text("Created: ") | bold | color(Color::Green),
-                        paragraph(tasks[selected]->getRelativeTimeMessage()) |
-                            flex}),
-                  separatorDashed(),
-                  hbox({text("Completed: ") | bold | color(Color::Blue),
-                        text(tasks[selected]->isCompleted() ? "Yes" : "No")}),
-                  separatorDashed(),
-                  hbox({
-                      text("Progress: ") | bold | color(Color::Magenta),
-                      gaugeRight(tasks[selected]->getProgress() * 0.01) |
-                          color(Color::Magenta),
-                      separatorEmpty(),
-                      text(std::to_string(tasks[selected]->getProgress()) +
-                           "\%") |
-                          bold,
-                  }),
-              }) | frame |
-                  flex;
+            ? window(text("Task Details") | bold | center,
+                     vbox({text("No tasks to display") | bold}))
+            : window(
+                  text("Task Details") | bold | center,
+                  vbox({
+                      hbox({text("ID: "),
+                            text(std::to_string(tasks[selected]->getId()))}),
+                      separatorDashed(),
+                      hbox({
+                          text("Priority: ") | bold | color(Color::Red),
+                          text(Priority::toString(
+                              tasks[selected]->getPriority())),
+                      }),
+                      separatorDashed(),
+                      text("Created: ") | bold | color(Color::Yellow),
+                      vbox({
+                          paragraph(tasks[selected]->getAbsoluteTimeMessage()) |
+                              flex,
+                          paragraph("(" +
+                                    tasks[selected]->getRelativeTimeMessage() +
+                                    ")") |
+                              flex,
+                      }),
+                      separatorDashed(),
+                      text("Due date: ") | bold | color(Color::Blue),
+                      vbox({
+                          paragraph(tasks[selected]->getFullDueDate()) | flex,
+                          paragraph("(" +
+                                    tasks[selected]->getRelativeDueDate() +
+                                    ")") |
+                              flex,
+                      }),
+                      separatorDashed(),
 
-    // combine left and right menus
+                  }) | frame |
+                      flex); // combine left and right menus
+
+    // progress bar or "No task selected" message
+    auto progress_section =
+        tasks.empty()
+            ? text("No task selected")
+            : hbox({
+                  gaugeRight(tasks[selected]->getProgress() * 0.01) |
+                      color(Color::Green),
+                  separatorEmpty(),
+                  text(std::to_string(tasks[selected]->getProgress()) + "\%") |
+                      bold,
+              });
+
     return vbox({
-               hbox({
-                   left_menu | xflex,
-                   separator(),
-                   right_menu,
-               }) | yflex,
-               separator(),
-               text(
-                   "space: toggle completed, r: remove, n: new task, q: quit") |
-                   frame,
-               text("+/- increase/decrease progress"),
-           }) |
-           border;
+        hbox({
+            vbox({left_menu | yflex,
+                  window(text("Progress") | bold, progress_section)}) |
+                xflex,
+            right_menu,
+        }) | yflex,
+        window(text("Navigation") | bold | center,
+               vbox({
+                   text("space: toggle completed, r: remove, n: new task, q: "
+                        "quit") |
+                       center,
+                   text("+/- increase/decrease progress") | center,
+               })),
+    });
   });
 
   auto screen = ScreenInteractive::Fullscreen();
@@ -292,4 +306,13 @@ bool ScreenElements::confirmDialog(ftxui::ScreenInteractive &screen,
   screen.Loop(dialog_renderer);
 
   return result;
+}
+
+void ScreenElements::removeTasksAccordingToPriority(
+    Priority::Level prior, std::vector<std::shared_ptr<Task>> &tasks) {
+  for (int i = 0; i < tasks.size(); i++) {
+    if (tasks[i]->getPriority() != prior) {
+      tasks.erase(tasks.begin() + i);
+    }
+  }
 }

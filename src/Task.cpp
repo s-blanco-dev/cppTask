@@ -1,6 +1,9 @@
 #include "../include/Task.h"
 #include <algorithm>
+#include <chrono>
+#include <iomanip>
 #include <nlohmann/json_fwd.hpp>
+#include <sstream>
 #include <string>
 
 // GETTERS & SETTERS
@@ -35,20 +38,61 @@ void Task::setProgress(int num) {
   }
 }
 
+void Task::setDueDate(const std::chrono::system_clock::time_point &dueDate) {
+  this->dueDate = dueDate;
+}
+
+std::string Task::getFullDueDate() const {
+  std::time_t due_time = std::chrono::system_clock::to_time_t(dueDate);
+  std::tm due_tm = *std::localtime(&due_time);
+  std::ostringstream oss;
+  oss << std::put_time(&due_tm, "%d-%m-%Y");
+  return oss.str();
+}
+
+std::string Task::getRelativeDueDate() const {
+  using namespace std::chrono;
+  auto now = system_clock::now();
+
+  auto duration = duration_cast<seconds>(dueDate - now);
+  auto days = duration.count() / (60 * 60 * 24);
+
+  // Format to string
+  if (days == 0) {
+    return "Today";
+  } else if (days == 1) {
+    return "In 1 day";
+  } else if (days > 1) {
+    return "In " + std::to_string(days) + " days";
+  } else {
+    return std::to_string(-days) + " days ago";
+  };
+}
+
+std::string Task::getAbsoluteTimeMessage() const {
+  std::time_t creation_time =
+      std::chrono::system_clock::to_time_t(creationTime);
+  std::tm creation_tm = *std::localtime(&creation_time);
+  std::ostringstream oss;
+  oss << std::put_time(&creation_tm, "%d-%m-%Y");
+  return oss.str();
+}
+
 // CONSTRUCTOR
 
-Task::Task(std::string desc, Priority::Level priority) {
+Task::Task(std::string desc, Priority::Level priority,
+           std::chrono::system_clock::time_point dueDate) {
   this->completed = false;
   this->description = desc;
   this->priority = priority;
   this->id = 0;
   this->creationTime = std::chrono::system_clock::now();
+  this->dueDate = dueDate; // Initialize dueDate to creationTime or
+                           // some default value
   this->progress = 0;
 }
 
-// std::string Task::getRelativeTimeMessage() const { return ""; }
 std::string Task::getRelativeTimeMessage() const {
-
   using namespace std::chrono;
   auto now = system_clock::now();
 
@@ -67,14 +111,18 @@ std::string Task::getRelativeTimeMessage() const {
 
 nlohmann::json Task::to_json() const {
   nlohmann::json j;
-  auto timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
-                           creationTime.time_since_epoch())
-                           .count();
+  auto creationTimeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   creationTime.time_since_epoch())
+                                   .count();
+  auto dueTimeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                              dueDate.time_since_epoch())
+                              .count();
 
   j["ID"] = this->id;
   j["description"] = this->description;
   j["priority"] = Priority::toString(this->priority);
-  j["creationTime"] = timeInSeconds;
+  j["creationTime"] = creationTimeInSeconds;
+  j["dueDate"] = dueTimeInSeconds;
   j["completed"] = this->completed;
   j["progress"] = this->progress;
 
@@ -86,14 +134,16 @@ Task Task::from_json(const nlohmann::json &file) {
   std::string priority = file["priority"];
   bool completed = file["completed"];
   int id = file["ID"];
-  auto timeInSeconds = file["creationTime"].get<long long>();
+  auto creationTimeInSeconds = file["creationTime"].get<long long>();
+  auto dueTimeInSeconds = file["dueDate"].get<long long>();
   int progress = file["progress"];
 
-  // Convertir los segundos de vuelta a un time_point
   std::chrono::system_clock::time_point creationTime =
-      std::chrono::system_clock::from_time_t(timeInSeconds);
+      std::chrono::system_clock::from_time_t(creationTimeInSeconds);
+  std::chrono::system_clock::time_point dueDate =
+      std::chrono::system_clock::from_time_t(dueTimeInSeconds);
 
-  Task task(description, Priority::fromString(priority));
+  Task task(description, Priority::fromString(priority), dueDate);
   task.creationTime = creationTime;
   task.completed = completed;
   task.id = id;

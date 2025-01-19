@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <string>
 #define CATCH_CONFIG_MAIN // Genera el main() para ejecutar las pruebas
 #include "../include/Facade.h"
 #include "../include/Priority.h"
@@ -25,7 +26,8 @@ TEST_CASE("Task creation and retrieval using Facade", "[Facade]") {
 
   // Crear una nueva tarea
   std::string description = "Test Task";
-  facade->newTask(description, Priority::Level::High);
+  std::string date = "20-10-2025";
+  facade->newTask(description, Priority::Level::High, date);
 
   // Recuperar tareas y verificar
   auto tasks = facade->getTasks();
@@ -43,7 +45,8 @@ TEST_CASE("Task toggle completion using Facade", "[Facade]") {
   facade->cleanTaskerJsonFile();
 
   // Crear una tarea y alternar su estado
-  facade->newTask("Toggle Task", Priority::Level::Low);
+  std::string date = "20-10-2025";
+  facade->newTask("Toggle Task", Priority::Level::Low, date);
   auto tasks = facade->getTasks();
 
   REQUIRE(!tasks[0]->isCompleted());
@@ -58,7 +61,8 @@ TEST_CASE("Task removal using Facade", "[Facade]") {
   facade->overwriteTasker("/tmp/test_tasks.json");
   facade->cleanTaskerJsonFile();
 
-  facade->newTask("Task to Remove", Priority::Level::Medium);
+  std::string date = "20-10-2025";
+  facade->newTask("Task to Remove", Priority::Level::Medium, date);
   auto tasks = facade->getTasks();
 
   REQUIRE(tasks.size() == 1);
@@ -76,7 +80,8 @@ TEST_CASE("Updating task progress", "[Facade]") {
   facade->overwriteTasker("/tmp/test_tasks.json");
   facade->cleanTaskerJsonFile();
 
-  facade->newTask("Task to update", Priority::Level::Medium);
+  std::string date = "20-10-2025";
+  facade->newTask("Task to update", Priority::Level::Medium, date);
   auto tasks = facade->getTasks();
 
   REQUIRE(tasks[0]->getProgress() == 0);
@@ -86,4 +91,21 @@ TEST_CASE("Updating task progress", "[Facade]") {
   REQUIRE(tasks[0]->isCompleted());
   facade->setTaskProgress(tasks[0], 50);
   REQUIRE(!tasks[0]->isCompleted());
+}
+
+TEST_CASE("Task due date", "[Facade]") {
+  Facade::resetInstance();
+  Facade *facade = Facade::getInstance();
+
+  facade->overwriteTasker("/tmp/test_tasks.json");
+  facade->cleanTaskerJsonFile();
+
+  std::string date = "20-10-2025";
+  facade->newTask("Task to update", Priority::Level::Medium, date);
+  auto tasks = facade->getTasks();
+
+  REQUIRE(tasks[0]->getFullDueDate() == "20-10-2025");
+  auto chrono_time = facade->getTimeFromString("20-10-2025");
+  auto task_time = facade->getTimeFromString(tasks[0]->getFullDueDate());
+  REQUIRE(chrono_time == task_time);
 }

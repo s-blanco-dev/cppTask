@@ -13,6 +13,7 @@ private:
   bool completed;
   Priority::Level priority;
   std::chrono::system_clock::time_point creationTime;
+  std::chrono::system_clock::time_point dueDate;
   int id;
   int progress;
 
@@ -23,6 +24,7 @@ public:
   void setDescription(std::string description);
   bool isCompleted() const;
   void setCompleted(bool state);
+  void setDueDate(const std::chrono::system_clock::time_point &due);
   int getId() const;
   void setId(int number);
   Priority::Level getPriority() const;
@@ -32,10 +34,13 @@ public:
   // std::chrono::system_clock::time_point getAbsoluteCreationTime() const;
   std::string getRelativeTimeMessage() const;
   std::string getAbsoluteTimeMessage() const;
+  std::string getRelativeDueDate() const;
+  std::string getFullDueDate() const;
   nlohmann::json to_json() const;
   static Task from_json(const nlohmann::json &file);
 
-  Task(std::string description, Priority::Level priority);
+  Task(std::string description, Priority::Level priority,
+       std::chrono::system_clock::time_point dueDate);
 };
 
 #endif // !TASK

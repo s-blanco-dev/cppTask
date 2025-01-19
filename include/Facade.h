@@ -3,6 +3,7 @@
 
 #include "Task.h"
 #include "TaskManager.h"
+#include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
@@ -22,10 +23,13 @@ public:
   void tuiViewTasks();
   void toggleTaskCompleted(std::shared_ptr<Task> task);
   void removeTask(std::shared_ptr<Task> task);
-  void newTask(const std::string &description, Priority::Level level);
+  void newTask(const std::string &description, Priority::Level level,
+               std::string due);
   std::vector<std::shared_ptr<Task>> getTasks();
   void overwriteTasker(std::string path);
   void setTaskProgress(std::shared_ptr<Task> task, int progress);
+  std::chrono::system_clock::time_point
+  getTimeFromString(const std::string &time);
   std::unique_ptr<TaskManager> getTasker();
   void cleanTaskerJsonFile();
 };

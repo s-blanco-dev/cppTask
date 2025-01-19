@@ -1,5 +1,7 @@
 #include "../include/TaskManager.h"
 #include "../include/Task.h"
+#include <chrono>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -9,8 +11,8 @@
 
 TaskManager::TaskManager(std::string filePath) {
   this->filePath = filePath;
-  autoJsonCreate(filePath);
-  getTasksFromJson(filePath);
+  autoJsonCreate();
+  getTasksFromJson();
 }
 
 std::vector<std::shared_ptr<Task>> TaskManager::getTasks() const {
@@ -18,17 +20,18 @@ std::vector<std::shared_ptr<Task>> TaskManager::getTasks() const {
 }
 
 void TaskManager::createTask(const std::string &description,
-                             Priority::Level level) {
-  auto tasky = std::make_shared<Task>(description, level);
+                             Priority::Level level,
+                             std::chrono::system_clock::time_point due) {
+  auto tasky = std::make_shared<Task>(description, level, due);
   tasky->setId(calculateId());
   this->tasks.push_back(tasky);
-  saveTasksToJson(this->filePath);
+  saveTasksToJson();
 }
 
-void TaskManager::saveTasksToJson(const std::string &filename) const {
-  std::ofstream outFile(filename);
+void TaskManager::saveTasksToJson() const {
+  std::ofstream outFile(this->filePath);
   if (!outFile.is_open()) {
-    throw std::ios_base::failure("Failed to open file: " + filename);
+    throw std::ios_base::failure("Failed to open file: " + this->filePath);
   }
 
   nlohmann::json j;
@@ -38,22 +41,22 @@ void TaskManager::saveTasksToJson(const std::string &filename) const {
 
   outFile << j.dump(4); // write to json file
   if (outFile.fail()) {
-    throw std::ios_base::failure("Failed to write to file: " + filename);
+    throw std::ios_base::failure("Failed to write to file: " + this->filePath);
   }
   outFile.close();
 }
 
-void TaskManager::getTasksFromJson(const std::string &filename) {
-  std::ifstream inFile(filename);
+void TaskManager::getTasksFromJson() {
+  std::ifstream inFile(this->filePath);
   if (!inFile.is_open()) {
-    throw std::ios_base::failure("Failed to open file: " + filename);
+    throw std::ios_base::failure("Failed to open file: " + this->filePath);
   }
 
   nlohmann::json j;
   inFile >> j; // read json from file
   if (inFile.fail()) {
     throw std::ios_base::failure("Error reading JSON data from file: " +
-                                 filename);
+                                 this->filePath);
   }
 
   for (const auto &taskJson : j) {
@@ -67,29 +70,21 @@ void TaskManager::getTasksFromJson(const std::string &filename) {
 
 void TaskManager::updateTaskCompleted(std::shared_ptr<Task> task,
                                       bool currentState) {
-  bool taskFound = false;
-  for (auto &tasky : this->tasks) {
-    if (tasky->getId() == task->getId()) {
-      tasky->setCompleted(currentState);
-      saveTasksToJson(this->filePath);
-      taskFound = true;
-      break;
-    }
-  }
-  if (!taskFound) {
-    throw std::invalid_argument("Task with ID " +
-                                std::to_string(task->getId()) + " not found.");
+  try {
+    task->setCompleted(currentState);
+    saveTasksToJson();
+  } catch (const std::exception &e) {
+    std::cerr << "Error updating task completion: " << e.what();
   }
 }
 
 void TaskManager::removeTask(std::shared_ptr<Task> task) {
   bool taskFound = false;
 
-  // iterate through the tasks to find task by id
   for (auto it = tasks.begin(); it != tasks.end(); ++it) {
     if ((*it)->getId() == task->getId()) {
       tasks.erase(it); // remove task according to its id
-      saveTasksToJson(this->filePath);
+      saveTasksToJson();
       taskFound = true;
       break;
     }
@@ -104,12 +99,11 @@ void TaskManager::removeTask(std::shared_ptr<Task> task) {
 void TaskManager::setFilePath(std::string path) { this->filePath = path; }
 
 void TaskManager::updateTaskProgress(std::shared_ptr<Task> task, int progress) {
-  for (auto &tasky : this->tasks) {
-    if (tasky->getId() == task->getId()) {
-      tasky->setProgress(progress);
-      saveTasksToJson(this->filePath);
-      break;
-    }
+  try {
+    task->setProgress(progress);
+    saveTasksToJson();
+  } catch (const std::exception &e) {
+    std::cerr << "Error updating task progress: " << e.what();
   }
 }
 
@@ -130,6 +124,11 @@ void TaskManager::cleanJsonFile() {
   tasks.clear();
 }
 
+void TaskManager::updateDueDate(std::shared_ptr<Task> &task,
+                                std::chrono::system_clock::time_point due) {
+  task->setDueDate(due);
+}
+
 // PRIVATE METHODS
 
 int TaskManager::calculateId() const {
@@ -146,25 +145,25 @@ int TaskManager::calculateId() const {
   return highestId + 1;
 }
 
-void TaskManager::autoJsonCreate(const std::string &filename) {
-  std::ifstream inFile(filename);
+void TaskManager::autoJsonCreate() {
+  std::ifstream inFile(this->filePath);
 
   // If the file does not exist, create it and write 'null' inside
   if (!inFile) {
     // Create an empty JSON object with a 'null' value
     nlohmann::json jsonData = nullptr;
 
-    std::ofstream outFile(filename);
+    std::ofstream outFile(this->filePath);
     if (outFile.is_open()) {
       outFile << jsonData.dump(4); // Pretty print with indentations
       outFile.close();
-      std::cout << "File created: " << filename << " with 'null' inside."
+      std::cout << "File created: " << this->filePath << " with 'null' inside."
                 << std::endl;
     } else {
-      std::cerr << "Failed to create file: " << filename << std::endl;
+      std::cerr << "Failed to create file: " << this->filePath << std::endl;
     }
   } else {
-    std::cout << "File already exists: " << filename << std::endl;
+    std::cout << "File already exists: " << this->filePath << std::endl;
   }
 }
 
