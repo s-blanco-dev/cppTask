@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -58,10 +59,10 @@ void Facade::removeTask(std::shared_ptr<Task> task) {
 }
 
 void Facade::newTask(const std::string &description, Priority::Level level,
-                     std::string due) {
+                     std::string due, const std::string &tag) {
   try {
     auto tp = getTimeFromString(due);
-    tasker->createTask(description, level, tp);
+    tasker->createTask(description, level, tp, tag);
   } catch (const std::exception &e) {
     std::cerr << "Error while creating new task: " << e.what() << std::endl;
   }
@@ -122,6 +123,33 @@ Facade::getTimeFromString(const std::string &dueDateStr) {
   return {};
 }
 
+std::vector<std::shared_ptr<Task>>
+Facade::getTasksByTag(const std::string &tagName) {
+  auto taskerTasks = this->tasker->getTasks();
+  std::vector<std::shared_ptr<Task>> tasksWithTag;
+  try {
+    for (auto &task : taskerTasks) {
+      if (task->getTag() == tagName) {
+        tasksWithTag.push_back(task);
+      }
+    }
+    return tasksWithTag;
+  } catch (const std::exception &e) {
+    std::cerr << "Error obtaining tasks by tag: " << e.what();
+  }
+  return {};
+}
+
+std::vector<std::string> Facade::getAllTags() const {
+  auto taskerTasks = this->tasker->getTasks();
+  std::unordered_set<std::string> uniqueTags;
+  for (const auto &task : taskerTasks) {
+    if (!task->getTag().empty()) {
+      uniqueTags.insert(task->getTag());
+    }
+  }
+  return std::vector<std::string>(uniqueTags.begin(), uniqueTags.end());
+}
 // TUI Methods
 // -----------------
 
