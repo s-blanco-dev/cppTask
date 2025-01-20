@@ -109,3 +109,21 @@ TEST_CASE("Task due date", "[Facade]") {
   auto task_time = facade->getTimeFromString(tasks[0]->getFullDueDate());
   REQUIRE(chrono_time == task_time);
 }
+
+TEST_CASE("Tags", "[Facade]") {
+  Facade::resetInstance();
+  Facade *facade = Facade::getInstance();
+
+  facade->overwriteTasker("/tmp/test_tasks.json");
+  facade->cleanTaskerJsonFile();
+
+  std::string date = "20-10-2025";
+  facade->newTask("Task with tag", Priority::Level::High, date);
+  facade->newTask("Task with another tag", Priority::Level::Low, date, "work");
+  auto tasks = facade->getTasks();
+
+  REQUIRE(facade->getAllTags().size() == 2);
+  REQUIRE(facade->getAllTags()[1] == "default");
+  REQUIRE(facade->getTasksByTag("work").size() == 1);
+  REQUIRE(facade->getTasksByTag("work")[0] == tasks[1]);
+}

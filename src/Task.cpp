@@ -38,6 +38,9 @@ void Task::setProgress(int num) {
   }
 }
 
+void Task::setTag(std::string tagName) { this->tag = tagName; }
+std::string Task::getTag() const { return this->tag; }
+
 void Task::setDueDate(const std::chrono::system_clock::time_point &dueDate) {
   this->dueDate = dueDate;
 }
@@ -81,7 +84,9 @@ std::string Task::getAbsoluteTimeMessage() const {
 // CONSTRUCTOR
 
 Task::Task(std::string desc, Priority::Level priority,
-           std::chrono::system_clock::time_point dueDate) {
+           std::chrono::system_clock::time_point dueDate,
+           const std::string &tagg)
+    : tag(tagg) {
   this->completed = false;
   this->description = desc;
   this->priority = priority;
@@ -124,6 +129,7 @@ nlohmann::json Task::to_json() const {
   j["creationTime"] = creationTimeInSeconds;
   j["dueDate"] = dueTimeInSeconds;
   j["completed"] = this->completed;
+  j["tag"] = this->tag;
   j["progress"] = this->progress;
 
   return j;
@@ -137,6 +143,7 @@ Task Task::from_json(const nlohmann::json &file) {
   auto creationTimeInSeconds = file["creationTime"].get<long long>();
   auto dueTimeInSeconds = file["dueDate"].get<long long>();
   int progress = file["progress"];
+  std::string tag = file["tag"];
 
   std::chrono::system_clock::time_point creationTime =
       std::chrono::system_clock::from_time_t(creationTimeInSeconds);
@@ -148,5 +155,6 @@ Task Task::from_json(const nlohmann::json &file) {
   task.completed = completed;
   task.id = id;
   task.progress = progress;
+  task.tag = tag;
   return task;
 }

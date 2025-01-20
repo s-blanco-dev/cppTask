@@ -16,6 +16,7 @@ private:
   std::chrono::system_clock::time_point dueDate;
   int id;
   int progress;
+  std::string tag;
 
 public:
   virtual ~Task() =
@@ -30,6 +31,8 @@ public:
   Priority::Level getPriority() const;
   int getProgress() const;
   void setProgress(int prog);
+  void setTag(std::string tagName);
+  std::string getTag() const;
 
   // std::chrono::system_clock::time_point getAbsoluteCreationTime() const;
   std::string getRelativeTimeMessage() const;
@@ -40,7 +43,8 @@ public:
   static Task from_json(const nlohmann::json &file);
 
   Task(std::string description, Priority::Level priority,
-       std::chrono::system_clock::time_point dueDate);
+       std::chrono::system_clock::time_point dueDate,
+       const std::string &tag = "default");
 };
 
 #endif // !TASK

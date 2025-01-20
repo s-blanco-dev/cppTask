@@ -31,8 +31,10 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
 
   std::string inputText;
   std::string dueDateText;
+  std::string tagInputText;
   auto descriptionInputBox = Input(&inputText, "Description");
   auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
+  auto tagInputBox = Input(&tagInputText, "work");
 
   std::vector<std::string> entries = {"High", "Medium", "Low"};
   int selected = 0;
@@ -41,9 +43,11 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   auto saveBtn = Button(
       "Save",
       [&] {
-        if (!inputText.empty() && !dueDateText.empty()) {
+        if (!inputText.empty() && !dueDateText.empty() &&
+            !tagInputText.empty()) {
           Facade::getInstance()->newTask(
-              inputText, Priority::fromString(entries[selected]), dueDateText);
+              inputText, Priority::fromString(entries[selected]), dueDateText,
+              tagInputText);
           screen.Exit();
         }
       },
@@ -57,6 +61,7 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
       cancelBtn,
       radiobox,
       dueDateInputBox,
+      tagInputBox,
   });
 
   auto component = Renderer(main_container, [&] {
@@ -76,10 +81,13 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
 
     auto dueDateWindow = window(text("Due Date") | bold | center,
                                 vbox({dueDateInputBox->Render() | frame}));
+    auto tagInputWindow = window(text("Tag") | bold | center,
+                                 vbox({tagInputBox->Render() | frame}));
 
     return hbox({descriptionWindow | flex, vbox({
                                                priorityWindow | xflex,
                                                dueDateWindow | xflex,
+                                               tagInputWindow | yflex,
                                            })});
   });
 
@@ -89,7 +97,9 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
 void ScreenElements::viewTasks() {
   using namespace ftxui;
 
+  std::vector<std::string> tags = Facade::getInstance()->getAllTags();
   auto tasks = Facade::getInstance()->getTasks();
+  int selectedTag = 0;
   int selected = 0;
 
   // Define a fixed-size array for task states (adjust size as needed)
@@ -122,17 +132,28 @@ void ScreenElements::viewTasks() {
     }
   };
 
-  getMenuEntries();
+  auto updateTasksByTag = [&]() {
+    tags = Facade::getInstance()->getAllTags();
+    tasks = Facade::getInstance()->getTasksByTag(tags[selectedTag]);
+    getMenuEntries();
+  };
+
+  updateTasksByTag();
 
   auto renderer = Renderer(menu, [&] {
+    // Determine the current tag to display
+    std::string currentTagText = "none";
+    if (!tags.empty()) {
+      currentTagText = tags[selectedTag];
+    }
+
     // list of tasks inside a window
     auto left_menu =
         window(text("Tasks") | bold | center,
                vbox({
+                   text("Current tag: " + currentTagText) | bold | frame,
                    menu->Render() | vscroll_indicator | frame | flex,
-               }));
-
-    // details of the selected task (if tasks exist)
+               })); // details of the selected task (if tasks exist)
     auto right_menu =
         // if no tasks exist --> print 'no task' | else: print details
         tasks.empty()
@@ -141,8 +162,7 @@ void ScreenElements::viewTasks() {
             : window(
                   text("Task Details") | bold | center,
                   vbox({
-                      hbox({text("ID: "),
-                            text(std::to_string(tasks[selected]->getId()))}),
+                      hbox({text("Tag: "), text(tasks[selected]->getTag())}),
                       separatorDashed(),
                       hbox({
                           text("Priority: ") | bold | color(Color::Red),
@@ -192,13 +212,14 @@ void ScreenElements::viewTasks() {
                 xflex,
             right_menu,
         }) | yflex,
-        window(text("Navigation") | bold | center,
-               vbox({
-                   text("space: toggle completed, r: remove, n: new task, q: "
-                        "quit") |
-                       center,
-                   text("+/- increase/decrease progress") | center,
-               })),
+        // window(text("Navigation") | bold | center,
+        //        vbox({
+        //            text("space: toggle completed, r: remove, n: new task, q:
+        //            "
+        //                 "quit") |
+        //                center,
+        //            text("+/- increase/decrease progress") | center,
+        //        })),
     });
   });
 
@@ -206,7 +227,7 @@ void ScreenElements::viewTasks() {
 
   auto refreshTasksAndMenu = [&]() {
     tasks = Facade::getInstance()->getTasks(); // refresh tasks
-    getMenuEntries();                          // refresh menu entries
+    updateTasksByTag();
     selected = std::min(selected, static_cast<int>(tasks.size()) - 1);
   };
 
@@ -234,6 +255,7 @@ void ScreenElements::viewTasks() {
       auto secondScreen = ScreenInteractive::Fullscreen();
       if (confirmDialog(secondScreen, "Remove task?")) {
         Facade::getInstance()->removeTask(tasks[selected]);
+        selected = tasks.size() - 1; // Select the newly created task
         refreshTasksAndMenu();
         return true;
       }
@@ -251,6 +273,9 @@ void ScreenElements::viewTasks() {
       tasks[selected]->setProgress(newProgress);
       getMenuEntries();
       return true;
+    } else if (eventChar == "\t") {
+      selectedTag = (selectedTag + 1) % tags.size(); // Cycle through tags
+      refreshTasksAndMenu();
     }
 
     return false;

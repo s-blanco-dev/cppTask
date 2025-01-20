@@ -24,7 +24,7 @@ public:
   void toggleTaskCompleted(std::shared_ptr<Task> task);
   void removeTask(std::shared_ptr<Task> task);
   void newTask(const std::string &description, Priority::Level level,
-               std::string due);
+               std::string due, const std::string &tag = "default");
   std::vector<std::shared_ptr<Task>> getTasks();
   void overwriteTasker(std::string path);
   void setTaskProgress(std::shared_ptr<Task> task, int progress);
@@ -32,6 +32,8 @@ public:
   getTimeFromString(const std::string &time);
   std::unique_ptr<TaskManager> getTasker();
   void cleanTaskerJsonFile();
+  std::vector<std::shared_ptr<Task>> getTasksByTag(const std::string &tagName);
+  std::vector<std::string> getAllTags() const;
 };
 
 #endif // !FACADE

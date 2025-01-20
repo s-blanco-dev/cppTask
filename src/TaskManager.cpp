@@ -4,6 +4,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
@@ -21,8 +22,9 @@ std::vector<std::shared_ptr<Task>> TaskManager::getTasks() const {
 
 void TaskManager::createTask(const std::string &description,
                              Priority::Level level,
-                             std::chrono::system_clock::time_point due) {
-  auto tasky = std::make_shared<Task>(description, level, due);
+                             std::chrono::system_clock::time_point due,
+                             const std::string &tag) {
+  auto tasky = std::make_shared<Task>(description, level, due, tag);
   tasky->setId(calculateId());
   this->tasks.push_back(tasky);
   saveTasksToJson();
