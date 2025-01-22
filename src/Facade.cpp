@@ -171,14 +171,14 @@ void Facade::updateJsonFile() {
 // TUI Methods
 // -----------------
 
-void Facade::tuiCreateTask() {
-  try {
-    auto screen = ftxui::ScreenInteractive::Fullscreen();
-    ScreenElements::newTaskDialog(screen);
-  } catch (const std::exception &e) {
-    std::cerr << "Error while creating task: " << e.what() << std::endl;
-  }
-}
+// void Facade::tuiCreateTask() {
+//   try {
+//     auto screen = ftxui::ScreenInteractive::Fullscreen();
+//     ScreenElements::newTaskDialog(screen);
+//   } catch (const std::exception &e) {
+//     std::cerr << "Error while creating task: " << e.what() << std::endl;
+//   }
+// }
 
 void Facade::tuiViewTasks() {
   try {
