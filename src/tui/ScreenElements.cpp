@@ -30,9 +30,12 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   using namespace ftxui;
 
   std::string inputText;
+  std::string descriptionInputText;
   std::string dueDateText;
   std::string tagInputText;
-  auto descriptionInputBox = Input(&inputText, "Description");
+  auto descriptionInputBox = Input(&inputText, "Title");
+  auto extendedDescriptionInputBox =
+      Input(&descriptionInputText, "description");
   auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
   auto tagInputBox = Input(&tagInputText, "work");
 
@@ -47,7 +50,7 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
             !tagInputText.empty()) {
           Facade::getInstance()->newTask(
               inputText, Priority::fromString(entries[selected]), dueDateText,
-              tagInputText);
+              tagInputText, descriptionInputText);
           screen.Exit();
         }
       },
@@ -57,6 +60,7 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
   auto radiobox = Radiobox(&entries, &selected);
   auto main_container = Container::Vertical({
       descriptionInputBox,
+      extendedDescriptionInputBox,
       saveBtn,
       cancelBtn,
       radiobox,
@@ -68,7 +72,9 @@ void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
     auto descriptionWindow =
         window(text("New Task") | bold | center,
                vbox({descriptionInputBox->Render() | frame |
-                         size(ftxui::HEIGHT, ftxui::EQUAL, 3) | flex_grow,
+                         size(ftxui::HEIGHT, ftxui::EQUAL, 3),
+                     separator(),
+                     extendedDescriptionInputBox->Render() | frame | flex_grow,
                      separator(),
                      hbox({
                          saveBtn->Render() | frame | color(Color::Green),
@@ -122,13 +128,15 @@ void ScreenElements::viewTasks() {
 
   auto getMenuEntries = [&]() {
     menu->DetachAllChildren();
-    for (size_t i = 0; i < tasks.size(); ++i) {
-      states[i] = tasks[i]->isCompleted();
-      menu->Add(Checkbox(format("{}", tasks[i]->getDescription()), &states[i]) |
-                color(getEntryColor(i)));
-    }
     if (tasks.empty()) {
       menu->Add(MenuEntry("Press 'n' to create a new task."));
+    } else {
+      for (size_t i = 0; i < tasks.size(); ++i) {
+        states[i] = tasks[i]->isCompleted();
+        menu->Add(
+            Checkbox(format("{}", tasks[i]->getDescription()), &states[i]) |
+            color(getEntryColor(i)));
+      }
     }
   };
 
@@ -152,6 +160,7 @@ void ScreenElements::viewTasks() {
         window(text("Tasks") | bold | center,
                vbox({
                    text("Current tag: " + currentTagText) | bold | frame,
+                   separator(),
                    menu->Render() | vscroll_indicator | frame | flex,
                })); // details of the selected task (if tasks exist)
     auto right_menu =
@@ -162,8 +171,6 @@ void ScreenElements::viewTasks() {
             : window(
                   text("Task Details") | bold | center,
                   vbox({
-                      hbox({text("Tag: "), text(tasks[selected]->getTag())}),
-                      separatorDashed(),
                       hbox({
                           text("Priority: ") | bold | color(Color::Red),
                           text(Priority::toString(
@@ -188,11 +195,13 @@ void ScreenElements::viewTasks() {
                                     ")") |
                               flex,
                       }),
-                      separatorDashed(),
-
                   }) | frame |
                       flex); // combine left and right menus
 
+    auto descriptionBox =
+        tasks.empty() ? text("No task to show")
+                      : hbox({paragraphAlignLeft(
+                            tasks[selected]->getExtendedDescription())});
     // progress bar or "No task selected" message
     auto progress_section =
         tasks.empty()
@@ -207,11 +216,16 @@ void ScreenElements::viewTasks() {
 
     return vbox({
         hbox({
-            vbox({left_menu | yflex,
+            vbox({
+                left_menu | yflex,
+            }) | xflex,
+            vbox({right_menu | yflex,
                   window(text("Progress") | bold, progress_section)}) |
                 xflex,
-            right_menu,
-        }) | yflex,
+        }),
+        vbox({window(text("Description") | bold, descriptionBox) | flex_grow})
+
+            | yflex,
         // window(text("Navigation") | bold | center,
         //        vbox({
         //            text("space: toggle completed, r: remove, n: new task, q:
@@ -245,7 +259,8 @@ void ScreenElements::viewTasks() {
       screen.Exit();
       return true;
       // mark as completed
-    } else if (eventChar == " " && !tasks.empty()) {
+    } else if (eventChar == " " && !tasks.empty() ||
+               eventChar == "\n" && !tasks.empty()) {
       Facade::getInstance()->toggleTaskCompleted(tasks[selected]);
       states[selected] = tasks[selected]->isCompleted();
       getMenuEntries();
@@ -257,6 +272,7 @@ void ScreenElements::viewTasks() {
         Facade::getInstance()->removeTask(tasks[selected]);
         selected = tasks.size() - 1; // Select the newly created task
         refreshTasksAndMenu();
+        selectedTag = 0;
         return true;
       }
       // increase task progress

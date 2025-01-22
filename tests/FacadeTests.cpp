@@ -127,3 +127,23 @@ TEST_CASE("Tags", "[Facade]") {
   REQUIRE(facade->getTasksByTag("work").size() == 1);
   REQUIRE(facade->getTasksByTag("work")[0] == tasks[1]);
 }
+
+TEST_CASE("Extended description", "[Facade]") {
+  Facade::resetInstance();
+  Facade *facade = Facade::getInstance();
+
+  facade->overwriteTasker("/tmp/test_tasks.json");
+  facade->cleanTaskerJsonFile();
+
+  std::string date = "20-10-2025";
+  std::string desc = "Hide the source code so people can't see such a mess";
+
+  facade->newTask("Task with description", Priority::Level::High, date,
+                  "default", desc);
+  auto tasks = facade->getTasks();
+
+  // yeah, I know these aren't exactly Facade tests
+  REQUIRE(tasks[0]->getExtendedDescription() == desc);
+  tasks[0]->setExtendedDescription("description");
+  REQUIRE(tasks[0]->getExtendedDescription() == "description");
+}

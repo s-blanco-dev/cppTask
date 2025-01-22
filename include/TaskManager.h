@@ -13,7 +13,8 @@ public:
   std::vector<std::shared_ptr<Task>> getTasks() const;
   void createTask(const std::string &description, Priority::Level level,
                   std::chrono::system_clock::time_point due,
-                  const std::string &tag = "default");
+                  const std::string &tag = "default",
+                  const std::string &extended = "");
   void saveTasksToJson() const;
   void getTasksFromJson();
   void updateTaskCompleted(std::shared_ptr<Task> task, bool currentState);

@@ -5,6 +5,8 @@ project(cppTask)
 find_package(Catch2 3 REQUIRED)
 include(CTest)
 
+find_package(TBB REQUIRED)
+
 # Agregar la biblioteca Catch2 usando FetchContent
 include(FetchContent)
 FetchContent_Declare(
@@ -48,6 +50,7 @@ target_link_libraries(cppTask
   PRIVATE ftxui::dom
   PRIVATE ftxui::component # Not needed for this example.
   PRIVATE nlohmann_json
+  PRIVATE TBB::tbb
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

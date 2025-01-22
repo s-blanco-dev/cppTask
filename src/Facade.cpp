@@ -59,10 +59,11 @@ void Facade::removeTask(std::shared_ptr<Task> task) {
 }
 
 void Facade::newTask(const std::string &description, Priority::Level level,
-                     std::string due, const std::string &tag) {
+                     std::string due, const std::string &tag,
+                     const std::string &extended) {
   try {
     auto tp = getTimeFromString(due);
-    tasker->createTask(description, level, tp, tag);
+    tasker->createTask(description, level, tp, tag, extended);
   } catch (const std::exception &e) {
     std::cerr << "Error while creating new task: " << e.what() << std::endl;
   }
@@ -125,19 +126,18 @@ Facade::getTimeFromString(const std::string &dueDateStr) {
 
 std::vector<std::shared_ptr<Task>>
 Facade::getTasksByTag(const std::string &tagName) {
-  auto taskerTasks = this->tasker->getTasks();
   std::vector<std::shared_ptr<Task>> tasksWithTag;
   try {
+    auto taskerTasks = this->tasker->getTasks();
     for (auto &task : taskerTasks) {
       if (task->getTag() == tagName) {
         tasksWithTag.push_back(task);
       }
     }
-    return tasksWithTag;
   } catch (const std::exception &e) {
     std::cerr << "Error obtaining tasks by tag: " << e.what();
   }
-  return {};
+  return tasksWithTag;
 }
 
 std::vector<std::string> Facade::getAllTags() const {
