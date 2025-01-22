@@ -35,6 +35,7 @@ public:
   void cleanTaskerJsonFile();
   std::vector<std::shared_ptr<Task>> getTasksByTag(const std::string &tagName);
   std::vector<std::string> getAllTags() const;
+  void updateJsonFile();
 };
 
 #endif // !FACADE

@@ -71,14 +71,15 @@ void Facade::newTask(const std::string &description, Priority::Level level,
 
 std::vector<std::shared_ptr<Task>> Facade::getTasks() {
   try {
-    return tasker->getTasks();
+    auto tasks = tasker->getTasks();
+
+    return tasks;
   } catch (const std::exception &e) {
     std::cerr << "Error while retrieving tasks: " << e.what() << std::endl;
     // return empty vector or rethrow exception
     return {};
   }
 }
-
 void Facade::overwriteTasker(std::string path) {
   this->tasker = std::make_unique<TaskManager>(TaskManager(path));
 }
@@ -134,6 +135,14 @@ Facade::getTasksByTag(const std::string &tagName) {
         tasksWithTag.push_back(task);
       }
     }
+
+    // sort tasks by due date
+    std::sort(
+        tasksWithTag.begin(), tasksWithTag.end(),
+        [](const std::shared_ptr<Task> &a, const std::shared_ptr<Task> &b) {
+          return a->getDueDate() < b->getDueDate();
+        });
+
   } catch (const std::exception &e) {
     std::cerr << "Error obtaining tasks by tag: " << e.what();
   }
@@ -150,6 +159,15 @@ std::vector<std::string> Facade::getAllTags() const {
   }
   return std::vector<std::string>(uniqueTags.begin(), uniqueTags.end());
 }
+
+void Facade::updateJsonFile() {
+  try {
+    tasker->saveTasksToJson();
+  } catch (std::exception &e) {
+    std::cerr << "Error updating JSON file: " << e.what();
+  }
+}
+
 // TUI Methods
 // -----------------
 
