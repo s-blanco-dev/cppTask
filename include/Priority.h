@@ -5,7 +5,7 @@
 
 class Priority {
 public:
-  enum class Level { Low, Medium, High };
+  enum class Level { High, Medium, Low };
 
   static std::string toString(Level level);
   static Priority::Level fromString(std::string level);

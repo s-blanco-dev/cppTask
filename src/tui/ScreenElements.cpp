@@ -26,79 +26,82 @@
 
 // This code is bad, but I don't care
 // I may refactor this in the future
-void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
-  using namespace ftxui;
-
-  std::string inputText;
-  std::string descriptionInputText;
-  std::string dueDateText;
-  std::string tagInputText;
-  auto descriptionInputBox = Input(&inputText, "Title");
-  auto extendedDescriptionInputBox =
-      Input(&descriptionInputText, "description");
-  auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
-  auto tagInputBox = Input(&tagInputText, "work");
-
-  std::vector<std::string> entries = {"High", "Medium", "Low"};
-  int selected = 0;
-
-  auto style = ButtonOption::Ascii();
-  auto saveBtn = Button(
-      "Save",
-      [&] {
-        if (!inputText.empty() && !dueDateText.empty() &&
-            !tagInputText.empty()) {
-          Facade::getInstance()->newTask(
-              inputText, Priority::fromString(entries[selected]), dueDateText,
-              tagInputText, descriptionInputText);
-          screen.Exit();
-        }
-      },
-      style);
-  auto cancelBtn = Button("Cancel", [&] { screen.Exit(); }, style);
-
-  auto radiobox = Radiobox(&entries, &selected);
-  auto main_container = Container::Vertical({
-      descriptionInputBox,
-      extendedDescriptionInputBox,
-      saveBtn,
-      cancelBtn,
-      radiobox,
-      dueDateInputBox,
-      tagInputBox,
-  });
-
-  auto component = Renderer(main_container, [&] {
-    auto descriptionWindow =
-        window(text("New Task") | bold | center,
-               vbox({descriptionInputBox->Render() | frame |
-                         size(ftxui::HEIGHT, ftxui::EQUAL, 3),
-                     separator(),
-                     extendedDescriptionInputBox->Render() | frame | flex_grow,
-                     separator(),
-                     hbox({
-                         saveBtn->Render() | frame | color(Color::Green),
-                         cancelBtn->Render() | frame | color(Color::Red),
-                     }) | size(HEIGHT, ftxui::EQUAL, 1)}));
-
-    auto priorityWindow =
-        window(text("Priority") | bold | center,
-               vbox({radiobox->Render() | vscroll_indicator | frame}));
-
-    auto dueDateWindow = window(text("Due Date") | bold | center,
-                                vbox({dueDateInputBox->Render() | frame}));
-    auto tagInputWindow = window(text("Tag") | bold | center,
-                                 vbox({tagInputBox->Render() | frame}));
-
-    return hbox({descriptionWindow | flex, vbox({
-                                               priorityWindow | xflex,
-                                               dueDateWindow | xflex,
-                                               tagInputWindow | yflex,
-                                           })});
-  });
-
-  screen.Loop(component);
-}
+// void ScreenElements::newTaskDialog(ftxui::ScreenInteractive &screen) {
+//   using namespace ftxui;
+//
+//   std::string inputText;
+//   std::string descriptionInputText;
+//   std::string dueDateText;
+//   std::string tagInputText;
+//   auto descriptionInputBox = Input(&inputText, "Title");
+//   auto extendedDescriptionInputBox =
+//       Input(&descriptionInputText, "description");
+//   auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
+//   auto tagInputBox = Input(&tagInputText, "work");
+//
+//   std::vector<std::string> entries = {"High", "Medium", "Low"};
+//   int selected = 0;
+//
+//   auto style = ButtonOption::Ascii();
+//   auto saveBtn = Button(
+//       "Save",
+//       [&] {
+//         if (!inputText.empty() && !dueDateText.empty() &&
+//             !tagInputText.empty()) {
+//           Facade::getInstance()->newTask(
+//               inputText, Priority::fromString(entries[selected]),
+//               dueDateText, tagInputText, descriptionInputText);
+//           screen.Exit();
+//         }
+//       },
+//       style);
+//   auto cancelBtn = Button("Cancel", [&] { screen.Exit(); }, style);
+//
+//   auto radiobox = Radiobox(&entries, &selected);
+//   auto main_container = Container::Vertical({
+//       descriptionInputBox,
+//       extendedDescriptionInputBox,
+//       saveBtn,
+//       cancelBtn,
+//       radiobox,
+//       dueDateInputBox,
+//       tagInputBox,
+//   });
+//
+//   auto component = Renderer(main_container, [&] {
+//     auto descriptionWindow =
+//         window(text("New Task") | bold | center,
+//                vbox({descriptionInputBox->Render() | frame |
+//                          size(ftxui::HEIGHT, ftxui::EQUAL, 3),
+//                      separator(),
+//                      extendedDescriptionInputBox->Render() | frame |
+//                      flex_grow, separator(), hbox({
+//                          saveBtn->Render() | frame | color(Color::Green),
+//                          cancelBtn->Render() | frame | color(Color::Red),
+//                      }) | size(HEIGHT, ftxui::EQUAL, 1)}));
+//
+//     auto priorityWindow =
+//         window(text("Priority") | bold | center,
+//                vbox({radiobox->Render() | vscroll_indicator | frame}));
+//
+//     auto dueDateWindow = window(text("Due Date") | bold | center,
+//                                 vbox({dueDateInputBox->Render() | frame}));
+//     auto tagInputWindow = window(text("Tag") | bold | center,
+//                                  vbox({tagInputBox->Render() | frame}));
+//
+//     return vbox({
+//         hbox({
+//             priorityWindow | xflex,
+//             dueDateWindow | xflex,
+//             tagInputWindow | xflex,
+//
+//         }),
+//         descriptionWindow | flex_grow,
+//     });
+//   });
+//
+//   screen.Loop(component);
+// }
 
 void ScreenElements::viewTasks() {
   using namespace ftxui;
@@ -250,7 +253,7 @@ void ScreenElements::viewTasks() {
 
     // new task
     if (eventChar == "n") {
-      Facade::getInstance()->tuiCreateTask();
+      taskDialog(screen, false);
       refreshTasksAndMenu();
       selected = tasks.size() - 1; // Select the newly created task
       return true;                 // refresh screen
@@ -271,8 +274,8 @@ void ScreenElements::viewTasks() {
       if (confirmDialog(secondScreen, "Remove task?")) {
         Facade::getInstance()->removeTask(tasks[selected]);
         selected = tasks.size() - 1; // Select the newly created task
-        refreshTasksAndMenu();
         selectedTag = 0;
+        refreshTasksAndMenu();
         return true;
       }
       // increase task progress
@@ -291,6 +294,10 @@ void ScreenElements::viewTasks() {
       return true;
     } else if (eventChar == "\t") {
       selectedTag = (selectedTag + 1) % tags.size(); // Cycle through tags
+      refreshTasksAndMenu();
+    } else if (eventChar == "e" && !tasks.empty()) {
+      // editTaskDialog(screen, tasks[selected]);
+      taskDialog(screen, true, tasks[selected]);
       refreshTasksAndMenu();
     }
 
@@ -356,4 +363,180 @@ void ScreenElements::removeTasksAccordingToPriority(
       tasks.erase(tasks.begin() + i);
     }
   }
+}
+
+// void ScreenElements::editTaskDialog(ftxui::ScreenInteractive &screen,
+//                                     std::shared_ptr<Task> task) {
+//   using namespace ftxui;
+//
+//   std::string inputText = task->getDescription();
+//   std::string descriptionInputText = task->getExtendedDescription();
+//   std::string dueDateText = task->getFullDueDate();
+//   std::string tagInputText = task->getTag();
+//   auto descriptionInputBox = Input(&inputText, "Title");
+//   auto extendedDescriptionInputBox =
+//       Input(&descriptionInputText, "Description");
+//   auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
+//   auto tagInputBox = Input(&tagInputText, "Tag");
+//
+//   std::vector<std::string> entries = {"High", "Medium", "Low"};
+//   int selected = static_cast<int>(task->getPriority());
+//
+//   auto style = ButtonOption::Ascii();
+//   auto saveBtn = Button(
+//       "Save",
+//       [&] {
+//         if (!inputText.empty() && !dueDateText.empty() &&
+//             !tagInputText.empty()) {
+//           task->setDescription(inputText);
+//           task->setExtendedDescription(descriptionInputText);
+//           task->setDueDate(Facade::getInstance()->getTimeFromString(
+//               dueDateText)); // Ensure the date is converted to the correct
+//                              // format
+//           task->setTag(tagInputText);
+//           task->setPriority(Priority::fromString(entries[selected]));
+//           Facade::getInstance()->updateJsonFile(); // Save changes
+//           screen.Exit();
+//         }
+//       },
+//       style);
+//   auto cancelBtn = Button("Cancel", [&] { screen.Exit(); }, style);
+//
+//   auto radiobox = Radiobox(&entries, &selected);
+//   auto main_container = Container::Vertical({
+//       descriptionInputBox,
+//       extendedDescriptionInputBox,
+//       saveBtn,
+//       cancelBtn,
+//       radiobox,
+//       dueDateInputBox,
+//       tagInputBox,
+//   });
+//
+//   auto component = Renderer(main_container, [&] {
+//     auto descriptionWindow =
+//         window(text("Edit Task") | bold | center,
+//                vbox({descriptionInputBox->Render() | frame |
+//                          size(ftxui::HEIGHT, ftxui::EQUAL, 3),
+//                      separator(),
+//                      extendedDescriptionInputBox->Render() | frame |
+//                      flex_grow, separator(), hbox({
+//                          saveBtn->Render() | frame | color(Color::Green),
+//                          cancelBtn->Render() | frame | color(Color::Red),
+//                      }) | size(HEIGHT, ftxui::EQUAL, 1)}));
+//
+//     auto priorityWindow =
+//         window(text("Priority") | bold | center,
+//                vbox({radiobox->Render() | vscroll_indicator | frame}));
+//
+//     auto dueDateWindow = window(text("Due Date") | bold | center,
+//                                 vbox({dueDateInputBox->Render() | frame}));
+//     auto tagInputWindow = window(text("Tag") | bold | center,
+//                                  vbox({tagInputBox->Render() | frame}));
+//
+//     return hbox({descriptionWindow | flex, vbox({
+//                                                priorityWindow | xflex,
+//                                                dueDateWindow | xflex,
+//                                                tagInputWindow | yflex,
+//                                            })});
+//   });
+//
+//   screen.Loop(component);
+// }
+
+void ScreenElements::taskDialog(ftxui::ScreenInteractive &screen, bool isEdit,
+                                std::shared_ptr<Task> task) {
+  using namespace ftxui;
+
+  std::string inputText = isEdit && task ? task->getDescription() : "";
+  std::string descriptionInputText =
+      isEdit && task ? task->getExtendedDescription() : "";
+  std::string dueDateText = isEdit && task ? task->getFullDueDate() : "";
+  std::string tagInputText = isEdit && task ? task->getTag() : "";
+  auto descriptionInputBox = Input(&inputText, "Title");
+  auto extendedDescriptionInputBox =
+      Input(&descriptionInputText, "Description");
+  auto dueDateInputBox = Input(&dueDateText, "DD-MM-YYYY");
+  auto tagInputBox = Input(&tagInputText, "Tag");
+
+  std::vector<std::string> entries = {"High", "Medium", "Low"};
+  int selected =
+      isEdit && task
+          ? std::distance(entries.begin(),
+                          std::find(entries.begin(), entries.end(),
+                                    Priority::toString(task->getPriority())))
+          : 0;
+
+  auto style = ButtonOption::Ascii();
+  auto saveBtn = Button(
+      isEdit ? "Save" : "Create",
+      [&] {
+        if (!inputText.empty() && !dueDateText.empty() &&
+            !tagInputText.empty()) {
+          if (isEdit && task) {
+            // editing an existing task
+            task->setDescription(inputText);
+            task->setExtendedDescription(descriptionInputText);
+            task->setDueDate(Facade::getInstance()->getTimeFromString(
+                dueDateText)); // ensure the date is converted to the correct
+                               // format
+            task->setTag(tagInputText);
+            task->setPriority(Priority::fromString(entries[selected]));
+          } else {
+            // creating a new task
+            Facade::getInstance()->newTask(
+                inputText, Priority::fromString(entries[selected]), dueDateText,
+                tagInputText, descriptionInputText);
+          }
+          Facade::getInstance()->updateJsonFile(); // save changes to the file
+          screen.Exit();
+        }
+      },
+      style);
+  auto cancelBtn = Button("Cancel", [&] { screen.Exit(); }, style);
+
+  auto radiobox = Radiobox(&entries, &selected);
+  auto main_container = Container::Vertical({
+      descriptionInputBox,
+      extendedDescriptionInputBox,
+      saveBtn,
+      cancelBtn,
+      radiobox,
+      dueDateInputBox,
+      tagInputBox,
+  });
+
+  auto component = Renderer(main_container, [&] {
+    auto descriptionWindow =
+        window(text(isEdit ? "Edit Task" : "New Task") | bold | center,
+               vbox({descriptionInputBox->Render() | frame |
+                         size(ftxui::HEIGHT, ftxui::EQUAL, 3),
+                     separator(),
+                     extendedDescriptionInputBox->Render() | frame | flex_grow,
+                     separator(),
+                     hbox({
+                         saveBtn->Render() | frame | color(Color::Green),
+                         cancelBtn->Render() | frame | color(Color::Red),
+                     }) | size(HEIGHT, ftxui::EQUAL, 1)}));
+
+    auto priorityWindow =
+        window(text("Priority") | bold | center,
+               vbox({radiobox->Render() | vscroll_indicator | frame}));
+
+    auto dueDateWindow = window(text("Due Date") | bold | center,
+                                vbox({dueDateInputBox->Render() | frame}));
+    auto tagInputWindow = window(text("Tag") | bold | center,
+                                 vbox({tagInputBox->Render() | frame}));
+
+    return vbox({
+        hbox({
+            priorityWindow | xflex,
+            dueDateWindow | xflex,
+            tagInputWindow | xflex,
+
+        }),
+        descriptionWindow | flex_grow,
+    });
+  });
+  screen.Loop(component);
 }

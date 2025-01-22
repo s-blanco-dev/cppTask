@@ -35,6 +35,7 @@ public:
   void setId(int number);
 
   Priority::Level getPriority() const;
+  void setPriority(Priority::Level priority);
 
   int getProgress() const;
   void setProgress(int prog);
@@ -45,6 +46,8 @@ public:
   // std::chrono::system_clock::time_point getAbsoluteCreationTime() const;
 
   void setDueDate(const std::chrono::system_clock::time_point &due);
+  std::chrono::system_clock::time_point getDueDate();
+
   std::string getRelativeTimeMessage() const;
   std::string getAbsoluteTimeMessage() const;
   std::string getRelativeDueDate() const;

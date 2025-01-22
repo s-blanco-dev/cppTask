@@ -16,6 +16,11 @@ public:
   static void viewTasks();
   static bool confirmDialog(ftxui::ScreenInteractive &screen,
                             const std::string &message);
+  static void editTaskDialog(ftxui::ScreenInteractive &screen,
+                             std::shared_ptr<Task> task);
+
+  static void taskDialog(ftxui::ScreenInteractive &screen, bool isEdit,
+                         std::shared_ptr<Task> task = nullptr);
 };
 
 #endif // !SCREENELEMENTS

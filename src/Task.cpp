@@ -34,6 +34,7 @@ int Task::getId() const { return this->id; }
 void Task::setId(int number) { this->id = number; }
 
 Priority::Level Task::getPriority() const { return this->priority; }
+void Task::setPriority(Priority::Level prior) { this->priority = prior; }
 
 int Task::getProgress() const { return this->progress; }
 void Task::setProgress(int num) {
@@ -59,6 +60,10 @@ std::string Task::getFullDueDate() const {
   std::ostringstream oss;
   oss << std::put_time(&due_tm, "%d-%m-%Y");
   return oss.str();
+}
+
+std::chrono::system_clock::time_point Task::getDueDate() {
+  return this->dueDate;
 }
 
 std::string Task::getRelativeDueDate() const {
