@@ -37,14 +37,14 @@ Priority::Level Task::getPriority() const { return this->priority; }
 void Task::setPriority(Priority::Level prior) { this->priority = prior; }
 
 int Task::getProgress() const { return this->progress; }
-void Task::setProgress(int num) {
-  this->progress = std::min(num, 100);
 
-  if (progress == 100) {
-    this->completed = true;
-  } else {
-    this->completed = false;
+void Task::setProgress(int num) {
+  if (num < 0 || num > 100) {
+    return;
   }
+
+  this->progress = num;
+  this->completed = (num == 100);
 }
 
 void Task::setTag(std::string tagName) { this->tag = tagName; }
