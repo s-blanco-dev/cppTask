@@ -1,5 +1,3 @@
-Here is a README for your repository:
-
 # cppTask
 
 Simple TUI task manager written in C++.
