@@ -11,6 +11,14 @@
 std::string Task::getDescription() const { return this->description; }
 void Task::setDescription(std::string desc) { this->description = desc; }
 
+std::string Task::getExtendedDescription() const {
+  return this->extendedDescription;
+}
+
+void Task::setExtendedDescription(std::string longText) {
+  this->extendedDescription = longText;
+}
+
 bool Task::isCompleted() const { return this->completed; }
 void Task::setCompleted(bool state) {
   if (state) {
@@ -85,8 +93,8 @@ std::string Task::getAbsoluteTimeMessage() const {
 
 Task::Task(std::string desc, Priority::Level priority,
            std::chrono::system_clock::time_point dueDate,
-           const std::string &tagg)
-    : tag(tagg) {
+           const std::string &tagg, const std::string &longtext)
+    : tag(tagg), extendedDescription(longtext) {
   this->completed = false;
   this->description = desc;
   this->priority = priority;
@@ -125,6 +133,7 @@ nlohmann::json Task::to_json() const {
 
   j["ID"] = this->id;
   j["description"] = this->description;
+  j["extended"] = this->extendedDescription;
   j["priority"] = Priority::toString(this->priority);
   j["creationTime"] = creationTimeInSeconds;
   j["dueDate"] = dueTimeInSeconds;
@@ -137,6 +146,7 @@ nlohmann::json Task::to_json() const {
 
 Task Task::from_json(const nlohmann::json &file) {
   std::string description = file["description"];
+  std::string extendedDesc = file["extended"];
   std::string priority = file["priority"];
   bool completed = file["completed"];
   int id = file["ID"];
@@ -151,6 +161,7 @@ Task Task::from_json(const nlohmann::json &file) {
       std::chrono::system_clock::from_time_t(dueTimeInSeconds);
 
   Task task(description, Priority::fromString(priority), dueDate);
+  task.extendedDescription = extendedDesc;
   task.creationTime = creationTime;
   task.completed = completed;
   task.id = id;

@@ -24,6 +24,7 @@ target_link_libraries(FacadeTests
   PRIVATE ftxui::dom
   PRIVATE ftxui::component
   PRIVATE nlohmann_json
+  PRIVATE TBB::tbb
 )
 
 # Descubrir los tests

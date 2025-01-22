@@ -24,7 +24,8 @@ public:
   void toggleTaskCompleted(std::shared_ptr<Task> task);
   void removeTask(std::shared_ptr<Task> task);
   void newTask(const std::string &description, Priority::Level level,
-               std::string due, const std::string &tag = "default");
+               std::string due, const std::string &tag = "default",
+               const std::string &extended = "");
   std::vector<std::shared_ptr<Task>> getTasks();
   void overwriteTasker(std::string path);
   void setTaskProgress(std::shared_ptr<Task> task, int progress);

@@ -23,8 +23,9 @@ std::vector<std::shared_ptr<Task>> TaskManager::getTasks() const {
 void TaskManager::createTask(const std::string &description,
                              Priority::Level level,
                              std::chrono::system_clock::time_point due,
-                             const std::string &tag) {
-  auto tasky = std::make_shared<Task>(description, level, due, tag);
+                             const std::string &tag,
+                             const std::string &extended) {
+  auto tasky = std::make_shared<Task>(description, level, due, tag, extended);
   tasky->setId(calculateId());
   this->tasks.push_back(tasky);
   saveTasksToJson();
