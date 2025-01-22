@@ -275,8 +275,8 @@ void ScreenElements::viewTasks() {
       if (confirmDialog(secondScreen, "Remove task?")) {
         Facade::getInstance()->removeTask(tasks[selected]);
         selected = tasks.size() - 1; // Select the newly created task
-        refreshTasksAndMenu();
         selectedTag = 0;
+        refreshTasksAndMenu();
         return true;
       }
       // increase task progress
