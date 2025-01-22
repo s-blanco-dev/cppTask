@@ -1,15 +1,18 @@
 # cppTask
 
-cppTask is a simple terminal user interface (TUI) task manager written in C++. Current features include:
-- Create, edit, and remove taks
-- Add an extended description
-- Assign due dates
-- View tasks divided by assigned tag
-- Order tasks by due date
-- View and modify task progress
-- Mark, unmark as completed
-- Assign a priority level to a task
-- Tasks colored according to priority
+cppTask is a simple terminal user interface (TUI) task manager written in C++.
+
+## Features
+
+- Create, edit, and remove tasks
+- Add extended descriptions to tasks
+- Assign due dates to tasks
+- View tasks categorized by tags
+- Sort tasks by due date
+- Track and update task progress
+- Mark tasks as completed or uncompleted
+- Assign priority levels to tasks
+- Task colors based on priority levels
 
 ## Libraries Used
 
@@ -52,6 +55,14 @@ cppTask is a simple terminal user interface (TUI) task manager written in C++. C
    ```sh
    ./cppTask
    ```
+
+## Keybindings
+
+- `n`: New task
+- `e`: Edit task
+- `r`: Remove task
+- `enter/spacebar`: Toggle completed
+- `tab`: Cycle through tags
 
 ## Usage
 
