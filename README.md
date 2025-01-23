@@ -2,7 +2,9 @@
 
 cppTask is a simple terminal user interface (TUI) task manager written in C++.
 
-![cpptask-2500](https://github.com/user-attachments/assets/6bd5ef79-3ff7-4ed9-8a3f-697092fe2fc1)
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6bd5ef79-3ff7-4ed9-8a3f-697092fe2fc1" alt="cpptask-2500">
+</div>
 
 ## Features
 
