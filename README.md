@@ -68,14 +68,4 @@ cppTask is a simple terminal user interface (TUI) task manager written in C++.
 
 ## Usage
 
-Once you have built the application, you can run it using the command mentioned above. The TUI will allow you to add, edit, and delete tasks directly from the terminal.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
+Once you have built the project, you can run the binary. You can use the argument `cppTask -o path/to/tasks.json` to specify where it should save the tasks.
