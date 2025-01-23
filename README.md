@@ -29,6 +29,7 @@ cppTask is a simple terminal user interface (TUI) task manager written in C++.
 - C++17 compatible compiler
 - [CMake](https://cmake.org/)
 - [Ninja](https://ninja-build.org/)
+- oneTBB library package
 
 ### Steps
 
