@@ -20,6 +20,7 @@ cppTask is a simple terminal user interface (TUI) task manager written in C++.
 
 - [nlohmann/json](https://github.com/nlohmann/json) - JSON for Modern C++
 - [FTXUI](https://github.com/ArthurSonzogni/FTXUI) - Functional Terminal User Interface
+- [Catch2](https://github.com/catchorg/Catch2) - A modern, C++-native, test framework for unit-tests
 
 ## Build Instructions
 
