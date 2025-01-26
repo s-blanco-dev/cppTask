@@ -19,8 +19,6 @@ public:
   ~Facade();                    // destructor
   static void resetInstance();
 
-  void tuiCreateTask();
-  void tuiViewTasks();
   void toggleTaskCompleted(std::shared_ptr<Task> task);
   void removeTask(std::shared_ptr<Task> task);
   void newTask(const std::string &description, Priority::Level level,

@@ -1,5 +1,4 @@
 #include "../include/Facade.h"
-#include "../include/ScreenElements.h"
 #include <chrono>
 #include <exception>
 #include <iostream>
@@ -165,26 +164,5 @@ void Facade::updateJsonFile() {
     tasker->saveTasksToJson();
   } catch (std::exception &e) {
     std::cerr << "Error updating JSON file: " << e.what();
-  }
-}
-
-// TUI Methods
-// -----------------
-
-// void Facade::tuiCreateTask() {
-//   try {
-//     auto screen = ftxui::ScreenInteractive::Fullscreen();
-//     ScreenElements::newTaskDialog(screen);
-//   } catch (const std::exception &e) {
-//     std::cerr << "Error while creating task: " << e.what() << std::endl;
-//   }
-// }
-
-void Facade::tuiViewTasks() {
-  try {
-    ScreenElements::viewTasks();
-  } catch (const std::exception &e) {
-    std::cerr << "Error in TUI main menu: " << e.what() << std::endl;
-    // Handle or rethrow
   }
 }

@@ -69,6 +69,7 @@ cppTask is a simple terminal user interface (TUI) task manager written in C++.
 - `r`: Remove task
 - `enter/spacebar`: Toggle completed
 - `tab`: Cycle through tags
+- `q`: Exit
 
 ## Usage
 
