@@ -38,9 +38,11 @@ add_executable(cppTask
   src/TaskManager.cpp
   src/Facade.cpp
   include/Facade.h
-  src/tui/ScreenElements.cpp
+  src/tui/MainDialog.cpp
   include/Priority.h
-  include/ScreenElements.h
+  include/tui/MainDialog.h
+  include/tui/UserPrompts.h
+  src/tui/UserPrompts.cpp
 )
 
 add_subdirectory(external/json)

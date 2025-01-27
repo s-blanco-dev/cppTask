@@ -1,5 +1,4 @@
 #include "../include/Facade.h"
-#include "../include/ScreenElements.h"
 #include <chrono>
 #include <exception>
 #include <iostream>
@@ -40,11 +39,8 @@ void Facade::resetInstance() {
 
 void Facade::toggleTaskCompleted(std::shared_ptr<Task> task) {
   try {
-    if (!task->isCompleted()) {
-      tasker->updateTaskCompleted(task, true);
-    } else {
-      tasker->updateTaskCompleted(task, false);
-    }
+    task->isCompleted() ? task->setCompleted(false) : task->setCompleted(true);
+    tasker->saveTasksToJson();
   } catch (const std::exception &e) {
     std::cerr << "Error while modifying task state: " << e.what() << std::endl;
   }
@@ -72,7 +68,6 @@ void Facade::newTask(const std::string &description, Priority::Level level,
 std::vector<std::shared_ptr<Task>> Facade::getTasks() {
   try {
     auto tasks = tasker->getTasks();
-
     return tasks;
   } catch (const std::exception &e) {
     std::cerr << "Error while retrieving tasks: " << e.what() << std::endl;
@@ -81,12 +76,18 @@ std::vector<std::shared_ptr<Task>> Facade::getTasks() {
   }
 }
 void Facade::overwriteTasker(std::string path) {
-  this->tasker = std::make_unique<TaskManager>(TaskManager(path));
+  try {
+    this->tasker = std::make_unique<TaskManager>(TaskManager(path));
+  } catch (const std::exception &e) {
+
+    std::cerr << "Error overwriting task manager: " << e.what();
+  }
 }
 
 void Facade::setTaskProgress(std::shared_ptr<Task> task, int progress) {
   try {
-    this->tasker->updateTaskProgress(task, progress);
+    task->setProgress(progress);
+    tasker->saveTasksToJson();
   } catch (const std::exception &e) {
     std::cerr << "Updating progress failed: " << e.what() << std::endl;
   }
@@ -165,26 +166,5 @@ void Facade::updateJsonFile() {
     tasker->saveTasksToJson();
   } catch (std::exception &e) {
     std::cerr << "Error updating JSON file: " << e.what();
-  }
-}
-
-// TUI Methods
-// -----------------
-
-// void Facade::tuiCreateTask() {
-//   try {
-//     auto screen = ftxui::ScreenInteractive::Fullscreen();
-//     ScreenElements::newTaskDialog(screen);
-//   } catch (const std::exception &e) {
-//     std::cerr << "Error while creating task: " << e.what() << std::endl;
-//   }
-// }
-
-void Facade::tuiViewTasks() {
-  try {
-    ScreenElements::viewTasks();
-  } catch (const std::exception &e) {
-    std::cerr << "Error in TUI main menu: " << e.what() << std::endl;
-    // Handle or rethrow
   }
 }
