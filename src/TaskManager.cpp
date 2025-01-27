@@ -71,15 +71,17 @@ void TaskManager::getTasksFromJson() {
   inFile.close();
 }
 
-void TaskManager::updateTaskCompleted(std::shared_ptr<Task> task,
-                                      bool currentState) {
-  try {
-    task->setCompleted(currentState);
-    saveTasksToJson();
-  } catch (const std::exception &e) {
-    std::cerr << "Error updating task completion: " << e.what();
-  }
-}
+// -------------------------------------------------
+// TODO: This could be removed and managed in Facade
+// void TaskManager::updateTaskCompleted(std::shared_ptr<Task> task,
+//                                       bool currentState) {
+//   try {
+//     task->setCompleted(currentState);
+//     saveTasksToJson();
+//   } catch (const std::exception &e) {
+//     std::cerr << "Error updating task completion: " << e.what();
+//   }
+// }
 
 void TaskManager::removeTask(std::shared_ptr<Task> task) {
   bool taskFound = false;
@@ -101,14 +103,17 @@ void TaskManager::removeTask(std::shared_ptr<Task> task) {
 
 void TaskManager::setFilePath(std::string path) { this->filePath = path; }
 
-void TaskManager::updateTaskProgress(std::shared_ptr<Task> task, int progress) {
-  try {
-    task->setProgress(progress);
-    saveTasksToJson();
-  } catch (const std::exception &e) {
-    std::cerr << "Error updating task progress: " << e.what();
-  }
-}
+// -----------------------
+// TODO: This could be removed and managed in Facade
+// void TaskManager::updateTaskProgress(std::shared_ptr<Task> task, int
+// progress) {
+//   try {
+//     task->setProgress(progress);
+//     saveTasksToJson();
+//   } catch (const std::exception &e) {
+//     std::cerr << "Error updating task progress: " << e.what();
+//   }
+// }
 
 void TaskManager::cleanJsonFile() {
   std::ofstream outFile(filePath);
@@ -127,12 +132,8 @@ void TaskManager::cleanJsonFile() {
   tasks.clear();
 }
 
-void TaskManager::updateDueDate(std::shared_ptr<Task> &task,
-                                std::chrono::system_clock::time_point due) {
-  task->setDueDate(due);
-}
-
 // PRIVATE METHODS
+// --------------------------------------
 
 int TaskManager::calculateId() const {
   if (this->tasks.empty()) {

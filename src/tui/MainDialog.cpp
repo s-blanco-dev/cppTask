@@ -1,7 +1,13 @@
+#include "../../include/tui/MainDialog.h"
+#include "../../include/Facade.h"
+#include "../../include/Priority.h"
+#include "../../include/Task.h"
+#include "../../include/tui/UserPrompts.h"
 #include "ftxui/component/component.hpp"      // for Button, Renderer, Vertical
 #include "ftxui/component/component_base.hpp" // for ComponentBase
 #include "ftxui/component/screen_interactive.hpp" // for ScreenInteractive
 #include <cstdlib>
+#include <ctime>
 #include <format>
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/task.hpp>
@@ -10,12 +16,6 @@
 #include <ftxui/screen/screen.hpp>
 #include <memory> // for allocator, __shared_ptr_access, shared_ptr
 #include <string> // for to_string, operator+
-#include "../../include/Facade.h"
-#include "../../include/Priority.h"
-#include "../../include/Task.h"
-#include "../../include/tui/MainDialog.h"
-#include "../../include/tui/UserPrompts.h"
-#include <ctime>
 #include <vector>
 
 //----------------------------------------
@@ -67,74 +67,107 @@ void MainDialog::updateTasksByTag() {
 //----------------------------------------
 
 ftxui::Component MainDialog::createRenderer() {
-    auto renderer = ftxui::Renderer(menu, [&] {
-      // Determine the current tag to display
-      std::string currentTagText = "none";
-      if (!tags.empty()) {
-        currentTagText = tags[selectedTag];
-      }
+  auto renderer = ftxui::Renderer(menu, [&] {
+    // Determine the current tag to display
+    std::string currentTagText = "none";
+    if (!tags.empty()) {
+      currentTagText = tags[selectedTag];
+    }
 
-      // List of tasks inside a window
-      auto left_menu = ftxui::window(ftxui::text("Tasks") | ftxui::bold | ftxui::center,
-                                     ftxui::vbox({
-                                       ftxui::text("Current tag: " + currentTagText) | ftxui::bold | ftxui::frame,
-                                       ftxui::separator(),
-                                       menu->Render() | ftxui::vscroll_indicator | ftxui::frame | ftxui::flex,
-                                     }));
+    // List of tasks inside a window
+    auto left_menu =
+        ftxui::window(ftxui::text("Tasks") | ftxui::bold | ftxui::center,
+                      ftxui::vbox({
+                          ftxui::text("Current tag: " + currentTagText) |
+                              ftxui::bold | ftxui::frame,
+                          ftxui::separator(),
+                          menu->Render() | ftxui::vscroll_indicator |
+                              ftxui::frame | ftxui::flex,
+                      }));
 
-      // Details of the selected task (if tasks exist)
-      auto right_menu = tasks.empty()
-                            ? ftxui::window(ftxui::text("Task Details") | ftxui::bold | ftxui::center,
-                                            ftxui::vbox({ftxui::text("No tasks to display") | ftxui::bold}))
-                            : ftxui::window(ftxui::text("Task Details") | ftxui::bold | ftxui::center,
-                                            ftxui::vbox({
-                                              ftxui::hbox({ftxui::text("Priority: ") | ftxui::bold | ftxui::color(ftxui::Color::Red),
-                                                           ftxui::text(Priority::toString(tasks[selected]->getPriority()))}),
-                                              ftxui::separatorDashed(),
-                                              ftxui::text("Created: ") | ftxui::bold | ftxui::color(ftxui::Color::Yellow),
-                                              ftxui::vbox({
-                                                ftxui::paragraph(tasks[selected]->getAbsoluteTimeMessage()) | ftxui::flex,
-                                                ftxui::paragraph("(" + tasks[selected]->getRelativeTimeMessage() + ")") | ftxui::flex,
-                                              }),
-                                              ftxui::separatorDashed(),
-                                              ftxui::text("Due date: ") | ftxui::bold | ftxui::color(ftxui::Color::Blue),
-                                              ftxui::vbox({
-                                                ftxui::paragraph(tasks[selected]->getFullDueDate()) | ftxui::flex,
-                                                ftxui::paragraph("(" + tasks[selected]->getRelativeDueDate() + ")") | ftxui::flex,
-                                              }),
-                                            }) | ftxui::frame | ftxui::flex);
+    // Details of the selected task (if tasks exist)
+    auto right_menu =
+        tasks.empty()
+            ? ftxui::window(ftxui::text("Task Details") | ftxui::bold |
+                                ftxui::center,
+                            ftxui::vbox({ftxui::text("No tasks to display") |
+                                         ftxui::bold}))
+            : ftxui::window(
+                  ftxui::text("Task Details") | ftxui::bold | ftxui::center,
+                  ftxui::vbox({
+                      ftxui::hbox({ftxui::text("Priority: ") | ftxui::bold |
+                                       ftxui::color(ftxui::Color::Red),
+                                   ftxui::text(Priority::toString(
+                                       tasks[selected]->getPriority()))}),
+                      ftxui::separatorDashed(),
+                      ftxui::text("Created: ") | ftxui::bold |
+                          ftxui::color(ftxui::Color::Yellow),
+                      ftxui::vbox({
+                          ftxui::paragraph(
+                              tasks[selected]->getAbsoluteTimeMessage()) |
+                              ftxui::flex,
+                          ftxui::paragraph(
+                              "(" + tasks[selected]->getRelativeTimeMessage() +
+                              ")") |
+                              ftxui::flex,
+                      }),
+                      ftxui::separatorDashed(),
+                      ftxui::text("Due date: ") | ftxui::bold |
+                          ftxui::color(ftxui::Color::Blue),
+                      ftxui::vbox({
+                          ftxui::paragraph(tasks[selected]->getFullDueDate()) |
+                              ftxui::flex,
+                          ftxui::paragraph(
+                              "(" + tasks[selected]->getRelativeDueDate() +
+                              ")") |
+                              ftxui::flex,
+                      }),
+                  }) | ftxui::frame |
+                      ftxui::flex);
 
-      auto descriptionBox = tasks.empty()
-                                ? ftxui::text("No task to show")
-                                : ftxui::hbox({ftxui::paragraphAlignLeft(tasks[selected]->getExtendedDescription())});
+    auto descriptionBox =
+        tasks.empty() ? ftxui::text("No task to show")
+                      : ftxui::hbox({ftxui::paragraphAlignLeft(
+                            tasks[selected]->getExtendedDescription())});
 
-      // Progress bar or "No task selected" message
-      auto progress_section = tasks.empty()
-                                  ? ftxui::text("No task selected")
-                                  : ftxui::hbox({
-                                      ftxui::gaugeRight(tasks[selected]->getProgress() * 0.01) | ftxui::color(ftxui::Color::Green),
-                                      ftxui::separatorEmpty(),
-                                      ftxui::text(std::to_string(tasks[selected]->getProgress()) + "\%") | ftxui::bold,
-                                    });
+    // Progress bar or "No task selected" message
+    auto progress_section =
+        tasks.empty()
+            ? ftxui::text("No task selected")
+            : ftxui::hbox({
+                  ftxui::gaugeRight(tasks[selected]->getProgress() * 0.01) |
+                      ftxui::color(ftxui::Color::Green),
+                  ftxui::separatorEmpty(),
+                  ftxui::text(std::to_string(tasks[selected]->getProgress()) +
+                              "\%") |
+                      ftxui::bold,
+              });
 
-      return ftxui::vbox({
+    return ftxui::vbox({
         ftxui::hbox({
-          ftxui::vbox({left_menu | ftxui::yflex}) | ftxui::xflex,
-          ftxui::vbox({right_menu | ftxui::yflex, ftxui::window(ftxui::text("Progress") | ftxui::bold, progress_section)}) | ftxui::xflex,
+            ftxui::vbox({left_menu | ftxui::yflex}) | ftxui::xflex,
+            ftxui::vbox({right_menu | ftxui::yflex,
+                         ftxui::window(ftxui::text("Progress") | ftxui::bold,
+                                       progress_section)}) |
+                ftxui::xflex,
         }),
-        ftxui::vbox({ftxui::window(ftxui::text("Description") | ftxui::bold, descriptionBox) | ftxui::flex_grow}) | ftxui::yflex,
-      });
+        ftxui::vbox({ftxui::window(ftxui::text("Description") | ftxui::bold,
+                                   descriptionBox) |
+                     ftxui::flex_grow}) |
+            ftxui::yflex,
     });
-    return renderer;
-  }
+  });
+  return renderer;
+}
 
 //----------------------------------------
 
-void MainDialog::handleEvents(ftxui::Component component, ftxui::ScreenInteractive& screen) {
+void MainDialog::handleEvents(ftxui::Component component,
+                              ftxui::ScreenInteractive &screen) {
   auto event_handler = ftxui::CatchEvent(component, [&](ftxui::Event event) {
     std::string eventChar = event.character();
     if (eventChar == "n") {
-    UserPrompts::taskDialog(screen, false);
+      UserPrompts::taskDialog(screen, false);
       refreshTasksAndMenu();
       selected = tasks.size() - 1;
       return true;
@@ -168,7 +201,7 @@ void MainDialog::handleEvents(ftxui::Component component, ftxui::ScreenInteracti
       getMenuEntries();
       return true;
     } else if (eventChar == "\t") {
-      selectedTag = (selectedTag + 1) % tags.size();
+      tags.size() == 0 ? selectedTag = 0 : selectedTag = (selectedTag + 1) % tags.size();
       refreshTasksAndMenu();
     } else if (eventChar == "e" && !tasks.empty()) {
       UserPrompts::taskDialog(screen, true, tasks[selected]);
@@ -194,8 +227,11 @@ ftxui::Color MainDialog::getEntryColor(int taskIndex) {
     return ftxui::Color::GrayDark;
   }
   switch (tasks[taskIndex]->getPriority()) {
-    case Priority::Level::High: return ftxui::Color::Red;
-    case Priority::Level::Medium: return ftxui::Color::Orange1;
-    default: return ftxui::Color::Wheat1;
+  case Priority::Level::High:
+    return ftxui::Color::Red;
+  case Priority::Level::Medium:
+    return ftxui::Color::Orange1;
+  default:
+    return ftxui::Color::Wheat1;
   }
 }
